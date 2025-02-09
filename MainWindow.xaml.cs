@@ -1,7 +1,7 @@
 ﻿using Echo_Orbit;
 using System.Windows;
 
-namespace AlgebraSQLizer
+namespace EchoOrbit
 {
     public partial class MainWindow : Window
     {

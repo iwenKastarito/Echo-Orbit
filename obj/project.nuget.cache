@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "s8D90pRblg0=",
+  "dgSpecHash": "1Pn+ycjIETo=",
   "success": true,
   "projectFilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\Echo Orbit.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\iwen2\\.nuget\\packages\\microsoft.sqlserver.transactsql.scriptdom\\170.23.0\\microsoft.sqlserver.transactsql.scriptdom.170.23.0.nupkg.sha512"
+    "C:\\Users\\iwen2\\.nuget\\packages\\microsoft.sqlserver.transactsql.scriptdom\\170.23.0\\microsoft.sqlserver.transactsql.scriptdom.170.23.0.nupkg.sha512",
+    "C:\\Users\\iwen2\\.nuget\\packages\\taglibsharp\\2.3.0\\taglibsharp.2.3.0.nupkg.sha512"
   ],
   "logs": []
 }

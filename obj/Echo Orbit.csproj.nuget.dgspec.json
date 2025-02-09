@@ -53,6 +53,10 @@
             "Microsoft.SqlServer.TransactSql.ScriptDom": {
               "target": "Package",
               "version": "[170.23.0, )"
+            },
+            "TagLibSharp": {
+              "target": "Package",
+              "version": "[2.3.0, )"
             }
           },
           "imports": [

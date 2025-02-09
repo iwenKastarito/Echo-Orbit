@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,12 +9,13 @@ using System.Windows.Media.Animation;
 using System.Windows.Data;
 using System.Windows.Threading;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using System.Windows.Media.Effects;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Microsoft.Win32;
 
-namespace AlgebraSQLizer
+namespace EchoOrbit
 {
-    // Converter to compute the width of the progress fill: (Value / Maximum) * ActualWidth
     public class SliderProgressWidthConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
@@ -31,11 +31,8 @@ namespace AlgebraSQLizer
             }
             return 0.0;
         }
-
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        {
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
             throw new NotImplementedException();
-        }
     }
 
     public class BottomBarMarginConverter : IMultiValueConverter
@@ -48,21 +45,34 @@ namespace AlgebraSQLizer
                 values[1] is double transformX)
             {
                 double visibleWidth = drawerWidth - transformX - SlideButtonWidth;
-                if (visibleWidth < 0) visibleWidth = 0;
+                if (visibleWidth < 0)
+                    visibleWidth = 0;
                 return new Thickness(150, 0, visibleWidth, 0);
             }
             return new Thickness(150, 0, 0, 0);
         }
-
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        {
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
             throw new NotImplementedException();
+    }
+
+    public class OneSixthMarginConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values != null && values.Length > 0 && values[0] is double totalWidth)
+            {
+                double leftMargin = totalWidth / 6;
+                return new Thickness(leftMargin, 0, 0, 0);
+            }
+            return new Thickness(0);
         }
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
+            throw new NotImplementedException();
     }
 
     public class RelationalAlgebraVisitor : TSqlFragmentVisitor
     {
-        // (Your existing visitor implementation remains unchanged.)
+        // Implementation not provided.
     }
 
     public partial class Dash : Window
@@ -74,12 +84,25 @@ namespace AlgebraSQLizer
         private DispatcherTimer musicTimer;
         private bool isPlaying = false;
 
+        // For full-screen image viewer navigation.
+        private List<ImageSource> viewerImages = new List<ImageSource>();
+        private int currentViewerIndex = 0;
+
+        // For kinetic ticker of MusicTitle.
+        private string fullMusicTitle = "";
+        private DispatcherTimer musicTitleTimer;
+        private int musicTitleOffset = 0;
+
         public Dash()
         {
             InitializeComponent();
             musicTimer = new DispatcherTimer();
             musicTimer.Interval = TimeSpan.FromSeconds(1);
             musicTimer.Tick += MusicTimer_Tick;
+
+            musicTitleTimer = new DispatcherTimer();
+            musicTitleTimer.Interval = TimeSpan.FromSeconds(0.5);
+            musicTitleTimer.Tick += MusicTitleTimer_Tick;
         }
 
         private void MusicTimer_Tick(object sender, EventArgs e)
@@ -166,12 +189,47 @@ namespace AlgebraSQLizer
             ofd.Filter = "Audio Files|*.mp3;*.wav;*.wma";
             if (ofd.ShowDialog() == true)
             {
+                string fileName = System.IO.Path.GetFileName(ofd.FileName);
                 MusicPlayer.Source = new Uri(ofd.FileName);
-                MusicTitle.Text = System.IO.Path.GetFileName(ofd.FileName);
+                fullMusicTitle = fileName;
+                MusicTitle.Text = fileName;
+                ApplyKineticAnimationToMusicTitle();
                 MusicPlayer.Play();
                 PlayPauseButton.Content = "⏸";
                 isPlaying = true;
+                string albumArtPath = System.IO.Path.ChangeExtension(ofd.FileName, ".jpg");
+                if (System.IO.File.Exists(albumArtPath))
+                {
+                    AudioThumbnailImage.Source = new BitmapImage(new Uri(albumArtPath));
+                }
+                else
+                {
+                    AudioThumbnailImage.Source = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.png"));
+                }
             }
+        }
+
+        // Allow dragging from anywhere outside BottomBar.
+        private void OuterBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!IsDescendant(BottomBar, e.OriginalSource as DependencyObject))
+            {
+                try { DragMove(); } catch { }
+            }
+        }
+
+        private bool IsDescendant(DependencyObject parent, DependencyObject child)
+        {
+            if (parent == null || child == null)
+                return false;
+            DependencyObject current = child;
+            while (current != null)
+            {
+                if (current == parent)
+                    return true;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return false;
         }
 
         private void SlideButton_Click(object sender, RoutedEventArgs e)
@@ -251,6 +309,7 @@ namespace AlgebraSQLizer
             string messageText = MessageTextBox.Text;
             StackPanel messageOuterPanel = new StackPanel { Margin = new Thickness(5) };
 
+            // Audio attachments in chat drawer (static text)
             if (audioAttachments.Count > 0)
             {
                 StackPanel audioOuterPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(5) };
@@ -262,12 +321,30 @@ namespace AlgebraSQLizer
                     {
                         string file = (s as Button).Tag as string;
                         MusicPlayer.Source = new Uri(file);
-                        MusicTitle.Text = System.IO.Path.GetFileName(file);
+                        string fileName = System.IO.Path.GetFileName(file);
+                        fullMusicTitle = fileName;
+                        MusicTitle.Text = fileName;
+                        ApplyKineticAnimationToMusicTitle();
                         MusicPlayer.Play();
                         PlayPauseButton.Content = "⏸";
                         isPlaying = true;
+                        string albumArtPath = System.IO.Path.ChangeExtension(file, ".jpg");
+                        if (System.IO.File.Exists(albumArtPath))
+                        {
+                            AudioThumbnailImage.Source = new BitmapImage(new Uri(albumArtPath));
+                        }
+                        else
+                        {
+                            AudioThumbnailImage.Source = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.png"));
+                        }
                     };
-                    TextBlock audioName = new TextBlock { Text = System.IO.Path.GetFileName(audio), Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
+                    TextBlock audioName = new TextBlock
+                    {
+                        Text = System.IO.Path.GetFileName(audio),
+                        Foreground = Brushes.White,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(5, 0, 0, 0)
+                    };
                     sp.Children.Add(audioButton);
                     sp.Children.Add(audioName);
                     audioOuterPanel.Children.Add(sp);
@@ -285,7 +362,13 @@ namespace AlgebraSQLizer
                     {
                         MessageBox.Show("Zip file: " + (s as Button).Tag.ToString());
                     };
-                    TextBlock zipName = new TextBlock { Text = System.IO.Path.GetFileName(zip), Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
+                    TextBlock zipName = new TextBlock
+                    {
+                        Text = System.IO.Path.GetFileName(zip),
+                        Foreground = Brushes.White,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(5, 0, 0, 0)
+                    };
                     sp.Children.Add(zipButton);
                     sp.Children.Add(zipName);
                     zipOuterPanel.Children.Add(sp);
@@ -313,7 +396,20 @@ namespace AlgebraSQLizer
                         imageControl.Cursor = Cursors.Hand;
                         imageControl.MouseLeftButtonUp += (s, args) =>
                         {
-                            ShowEnlargedImage(imageControl.Source);
+                            Image clickedImage = s as Image;
+                            WrapPanel panel = imagesPanel;
+                            List<ImageSource> sources = new List<ImageSource>();
+                            int selectedIndex = 0;
+                            for (int i = 0; i < panel.Children.Count; i++)
+                            {
+                                if (panel.Children[i] is Image imgChild)
+                                {
+                                    sources.Add(imgChild.Source);
+                                    if (imgChild == clickedImage)
+                                        selectedIndex = i;
+                                }
+                            }
+                            ShowEnlargedImage(sources, selectedIndex);
                         };
                         imagesPanel.Children.Add(imageControl);
                     }
@@ -321,7 +417,13 @@ namespace AlgebraSQLizer
                 }
                 if (!string.IsNullOrWhiteSpace(messageText))
                 {
-                    TextBlock textBlock = new TextBlock { Text = messageText, Foreground = Brushes.White, Margin = new Thickness(5), TextWrapping = TextWrapping.Wrap };
+                    TextBlock textBlock = new TextBlock
+                    {
+                        Text = messageText,
+                        Foreground = Brushes.White,
+                        Margin = new Thickness(5),
+                        TextWrapping = TextWrapping.Wrap
+                    };
                     innerStack.Children.Add(textBlock);
                 }
                 messageBubble.Child = innerStack;
@@ -384,57 +486,169 @@ namespace AlgebraSQLizer
             }
         }
 
-        private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        // Full-screen image viewer with centered navigation buttons.
+        private void ShowEnlargedImage(List<ImageSource> images, int selectedIndex)
         {
-            if (e.ButtonState == MouseButtonState.Pressed)
+            if (images == null || images.Count == 0)
+                return;
+
+            viewerImages = images;
+            currentViewerIndex = selectedIndex;
+
+            Window fullScreenViewer = new Window
             {
-                try { DragMove(); } catch (InvalidOperationException) { }
-            }
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = Brushes.Transparent,
+                WindowState = WindowState.Maximized,
+                Topmost = true,
+                ShowInTaskbar = false
+            };
+
+            Grid rootGrid = new Grid();
+
+            Rectangle backgroundRect = new Rectangle
+            {
+                Fill = new SolidColorBrush(Color.FromArgb(200, 0, 0, 0))
+            };
+            backgroundRect.Effect = new BlurEffect { Radius = 10 };
+            rootGrid.Children.Add(backgroundRect);
+
+            Border imageContainer = new Border
+            {
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            Image fullScreenImage = new Image
+            {
+                Source = viewerImages[currentViewerIndex],
+                Stretch = Stretch.Uniform,
+                MaxWidth = SystemParameters.PrimaryScreenWidth,
+                MaxHeight = SystemParameters.PrimaryScreenHeight
+            };
+            imageContainer.Child = fullScreenImage;
+            rootGrid.Children.Add(imageContainer);
+
+            Grid navGrid = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            navGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            navGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            Button leftButton = new Button
+            {
+                Content = "❮",
+                Width = 50,
+                Height = 50,
+                Background = Brushes.Transparent,
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontSize = 30,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(20, 0, 0, 0)
+            };
+            Grid.SetColumn(leftButton, 0);
+            navGrid.Children.Add(leftButton);
+
+            Button rightButton = new Button
+            {
+                Content = "❯",
+                Width = 50,
+                Height = 50,
+                Background = Brushes.Transparent,
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                FontSize = 30,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 20, 0)
+            };
+            Grid.SetColumn(rightButton, 1);
+            navGrid.Children.Add(rightButton);
+
+            rootGrid.Children.Add(navGrid);
+
+            rootGrid.MouseLeftButtonDown += (s, e) =>
+            {
+                if (e.OriginalSource == backgroundRect)
+                {
+                    fullScreenViewer.Close();
+                }
+            };
+
+            leftButton.Click += (s, e) =>
+            {
+                currentViewerIndex = (currentViewerIndex - 1 + viewerImages.Count) % viewerImages.Count;
+                fullScreenImage.Source = viewerImages[currentViewerIndex];
+            };
+            rightButton.Click += (s, e) =>
+            {
+                currentViewerIndex = (currentViewerIndex + 1) % viewerImages.Count;
+                fullScreenImage.Source = viewerImages[currentViewerIndex];
+            };
+
+            fullScreenViewer.Content = rootGrid;
+            fullScreenViewer.ShowDialog();
         }
 
-        // When the mouse enters the bottom bar container, show the controls panel.
+        // Kinetic ticker for MusicTitle: shows a fixed 17-character substring that advances one character at a time.
+        private void ApplyKineticAnimationToMusicTitle()
+        {
+            if (string.IsNullOrEmpty(fullMusicTitle))
+            {
+                musicTitleTimer.Stop();
+                return;
+            }
+            // If the full title is 17 or fewer characters, show it and stop the ticker.
+            if (fullMusicTitle.Length <= 17)
+            {
+                musicTitleTimer.Stop();
+                MusicTitle.Text = fullMusicTitle;
+                return;
+            }
+            musicTitleOffset = 0;
+            MusicTitle.Text = fullMusicTitle.Substring(0, 17);
+            musicTitleTimer.Start();
+        }
+
+        private void MusicTitleTimer_Tick(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(fullMusicTitle) || fullMusicTitle.Length <= 17)
+            {
+                musicTitleTimer.Stop();
+                return;
+            }
+            int len = fullMusicTitle.Length;
+            // If there is enough room, take substring of 17 characters; if not, wrap around.
+            if (musicTitleOffset + 17 <= len)
+            {
+                MusicTitle.Text = fullMusicTitle.Substring(musicTitleOffset, 17);
+            }
+            else
+            {
+                int rem = len - musicTitleOffset;
+                MusicTitle.Text = fullMusicTitle.Substring(musicTitleOffset, rem) + fullMusicTitle.Substring(0, 17 - rem);
+            }
+            musicTitleOffset = (musicTitleOffset + 1) % len;
+        }
+
         private void BottomBar_MouseEnter(object sender, MouseEventArgs e)
         {
             Storyboard sb = (Storyboard)FindResource("BottomBarShow");
             sb.Begin();
         }
 
-        // When the mouse leaves the bottom bar container, hide the controls panel.
         private void BottomBar_MouseLeave(object sender, MouseEventArgs e)
         {
             Storyboard sb = (Storyboard)FindResource("BottomBarHide");
             sb.Begin();
-        }
-
-        // Opens a full-screen overlay (covering the entire screen) to display an enlarged image.
-        private void ShowEnlargedImage(ImageSource source)
-        {
-            Window overlay = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = new SolidColorBrush(Color.FromArgb(200, 0, 0, 0)),
-                WindowState = WindowState.Maximized,
-                Topmost = true,
-                ShowInTaskbar = false
-            };
-            Grid grid = new Grid();
-            Image enlargedImage = new Image
-            {
-                Source = source,
-                Stretch = Stretch.Uniform,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                MaxWidth = SystemParameters.PrimaryScreenWidth / 2,
-                MaxHeight = SystemParameters.PrimaryScreenHeight / 2
-            };
-            grid.Children.Add(enlargedImage);
-            overlay.Content = grid;
-            overlay.MouseLeftButtonDown += (s, e) =>
-            {
-                overlay.Close();
-            };
-            overlay.ShowDialog();
         }
     }
 }

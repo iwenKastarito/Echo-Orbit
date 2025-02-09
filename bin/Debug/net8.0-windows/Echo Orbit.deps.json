@@ -8,7 +8,8 @@
     ".NETCoreApp,Version=v8.0": {
       "Echo Orbit/1.0.0": {
         "dependencies": {
-          "Microsoft.SqlServer.TransactSql.ScriptDom": "170.23.0"
+          "Microsoft.SqlServer.TransactSql.ScriptDom": "170.23.0",
+          "TagLibSharp": "2.3.0"
         },
         "runtime": {
           "Echo Orbit.dll": {}
@@ -62,6 +63,14 @@
             "locale": "zh-Hant"
           }
         }
+      },
+      "TagLibSharp/2.3.0": {
+        "runtime": {
+          "lib/netstandard2.0/TagLibSharp.dll": {
+            "assemblyVersion": "2.3.0.0",
+            "fileVersion": "2.3.0.0"
+          }
+        }
       }
     }
   },
@@ -77,6 +86,13 @@
       "sha512": "sha512-yxd7FrsFLLkUMefsUEXHfjlkz85oPDP0OmnEc6tn1DYwNNpmXDYk5jt/cFWoshDAh0rHqyuFWO7nv4dTR5WMCA==",
       "path": "microsoft.sqlserver.transactsql.scriptdom/170.23.0",
       "hashPath": "microsoft.sqlserver.transactsql.scriptdom.170.23.0.nupkg.sha512"
+    },
+    "TagLibSharp/2.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Qo4z6ZjnIfbR3Us1Za5M2vQ97OWZPmODvVmepxZ8XW0UIVLGdO2T63/N3b23kCcyiwuIe0TQvMEQG8wUCCD1mA==",
+      "path": "taglibsharp/2.3.0",
+      "hashPath": "taglibsharp.2.3.0.nupkg.sha512"
     }
   }
 }
