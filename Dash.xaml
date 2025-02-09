@@ -17,13 +17,13 @@
                         <Grid>
                             <Track Name="PART_Track" IsDirectionReversed="true">
                                 <Track.DecreaseRepeatButton>
-                                    <RepeatButton Style="{x:Null}" Height="0" />
+                                    <RepeatButton Style="{x:Null}" Height="0"/>
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb Background="#4D4D4D" BorderThickness="0" />
+                                    <Thumb Background="#4D4D4D" BorderThickness="0"/>
                                 </Track.Thumb>
                                 <Track.IncreaseRepeatButton>
-                                    <RepeatButton Style="{x:Null}" Height="0" />
+                                    <RepeatButton Style="{x:Null}" Height="0"/>
                                 </Track.IncreaseRepeatButton>
                             </Track>
                         </Grid>
@@ -32,44 +32,97 @@
             </Setter>
         </Style>
 
+        <!-- Transparent RepeatButton style (used in the slider template) -->
+        <Style x:Key="TransparentRepeatButtonStyle" TargetType="RepeatButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <!-- Simple Thumb Template for round thumb -->
+        <ControlTemplate x:Key="ThumbTemplate" TargetType="Thumb">
+            <Border Background="{TemplateBinding Background}"
+              CornerRadius="7.5" Width="15" Height="15"/>
+        </ControlTemplate>
+
+        <!-- Converter to compute fill width: (Value/Maximum)*ActualWidth -->
+        <local:SliderProgressWidthConverter x:Key="SliderProgressWidthConverter"/>
+
+        <!-- Fancy Slider Style with progress fill -->
+        <Style x:Key="FancySliderStyle" TargetType="Slider">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <!-- 'templateRoot' is used to bind ActualWidth -->
+                        <Grid x:Name="templateRoot">
+                            <!-- Background and progress fill -->
+                            <Grid>
+                                <!-- Full track background -->
+                                <Border x:Name="TrackBackground" Background="DarkGray" Height="8"
+                        VerticalAlignment="Center" CornerRadius="4"/>
+                                <!-- Elapsed progress fill -->
+                                <Rectangle x:Name="ProgressFill" Fill="Green" Height="8"
+                           VerticalAlignment="Center" HorizontalAlignment="Left">
+                                    <Rectangle.Width>
+                                        <MultiBinding Converter="{StaticResource SliderProgressWidthConverter}">
+                                            <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Value"/>
+                                            <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Maximum"/>
+                                            <Binding ElementName="templateRoot" Path="ActualWidth"/>
+                                        </MultiBinding>
+                                    </Rectangle.Width>
+                                </Rectangle>
+                            </Grid>
+                            <!-- The Track overlays the background -->
+                            <Track x:Name="PART_Track" Margin="0" Focusable="False" IsDirectionReversed="False">
+                                <Track.Thumb>
+                                    <Thumb Background="White" Width="15" Height="15"
+                         Template="{StaticResource ThumbTemplate}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Chat Drawer Slide In/Out Animations -->
-        <!-- When closed, ChatDrawer's TranslateTransform.X is 270 (so only the 30px SlideButton is visible) -->
         <Storyboard x:Key="SlideIn">
-            <DoubleAnimation Storyboard.TargetName="ChatDrawerTransform" 
-                             Storyboard.TargetProperty="X" 
-                             From="270" To="0" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetName="ChatDrawerTransform"
+                       Storyboard.TargetProperty="X"
+                       From="270" To="0" Duration="0:0:0.3"/>
         </Storyboard>
         <Storyboard x:Key="SlideOut">
-            <DoubleAnimation Storyboard.TargetName="ChatDrawerTransform" 
-                             Storyboard.TargetProperty="X" 
-                             From="0" To="270" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetName="ChatDrawerTransform"
+                       Storyboard.TargetProperty="X"
+                       From="0" To="270" Duration="0:0:0.3"/>
         </Storyboard>
 
-        <!-- Bottom Bar Vertical Animations (for mouse enter/leave) -->
-        <!-- When hidden, BottomBar's TranslateTransform.Y is 80 (so only the top 20px show) -->
+        <!-- Bottom Bar Hover Animations (for the entire bottom bar border) -->
         <Storyboard x:Key="BottomBarShow">
-            <DoubleAnimation Storyboard.TargetName="BottomBarTransform" 
-                             Storyboard.TargetProperty="Y" 
-                             From="80" To="0" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetName="BottomBarTransform"
+                       Storyboard.TargetProperty="Y"
+                       From="60" To="0" Duration="0:0:0.3"/>
         </Storyboard>
         <Storyboard x:Key="BottomBarHide">
-            <DoubleAnimation Storyboard.TargetName="BottomBarTransform" 
-                             Storyboard.TargetProperty="Y" 
-                             From="0" To="80" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetName="BottomBarTransform"
+                       Storyboard.TargetProperty="Y"
+                       From="0" To="60" Duration="0:0:0.3"/>
         </Storyboard>
+
+        <!-- Converter for dynamic BottomBar Margin -->
+        <local:BottomBarMarginConverter x:Key="BottomBarMarginConverter"/>
 
         <!-- Menu Item Style -->
         <Style x:Key="MenuItemStyle" TargetType="MenuItem">
-            <Setter Property="Background" Value="#383838" />
-            <Setter Property="Foreground" Value="#CFC9C4" />
+            <Setter Property="Background" Value="#383838"/>
+            <Setter Property="Foreground" Value="#CFC9C4"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3D3D3D" />
-                    <Setter Property="Foreground" Value="#CFC9C4" />
+                    <Setter Property="Background" Value="#3D3D3D"/>
+                    <Setter Property="Foreground" Value="#CFC9C4"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="SteelBlue" />
-                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="Background" Value="SteelBlue"/>
+                    <Setter Property="Foreground" Value="White"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -102,7 +155,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- SlideButton Style for the Chat Drawer -->
+        <!-- SlideButton Style for Chat Drawer -->
         <Style x:Key="SlideButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="70"/>
@@ -113,9 +166,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="5"
-                                BorderBrush="#4C4481" BorderThickness="1">
+                        <Border Background="{TemplateBinding Background}"
+                    CornerRadius="5"
+                    BorderBrush="#4C4481" BorderThickness="1">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -131,21 +184,17 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Navigation Title Style (non-clickable section headers) -->
+        <!-- Navigation Title Style -->
         <Style x:Key="NavigationTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Margin" Value="10,15,10,5"/>
         </Style>
-
-        <!-- Converter for dynamically computing BottomBar Margin -->
-        <local:BottomBarMarginConverter x:Key="BottomBarMarginConverter"/>
     </Window.Resources>
 
-    <!-- Outer Border (with rounded corners) plus global DragMove handling -->
     <Border CornerRadius="10" Background="#2E2E2E" BorderThickness="1" BorderBrush="Black"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown">
+          MouseLeftButtonDown="Border_MouseLeftButtonDown">
         <Grid>
             <!-- Content Layer -->
             <Grid x:Name="ContentGrid">
@@ -156,50 +205,51 @@
                 <!-- Menu Bar -->
                 <Menu Grid.Row="0" Background="#383838" Foreground="#2E2E2E">
                     <MenuItem Header="File" Style="{StaticResource MenuItemStyle}">
-                        <MenuItem Header="New" Style="{StaticResource MenuItemStyle}" />
-                        <MenuItem Header="Open" Style="{StaticResource MenuItemStyle}" />
+                        <MenuItem Header="New" Style="{StaticResource MenuItemStyle}"/>
+                        <MenuItem Header="Open" Style="{StaticResource MenuItemStyle}" Click="FileOpen_Click"/>
                         <MenuItem Header="Save AS..." Style="{StaticResource MenuItemStyle}">
-                            <MenuItem Header="Algebra" Style="{StaticResource MenuItemStyle}" />
-                            <MenuItem Header="Query" Style="{StaticResource MenuItemStyle}" />
+                            <MenuItem Header="Algebra" Style="{StaticResource MenuItemStyle}"/>
+                            <MenuItem Header="Query" Style="{StaticResource MenuItemStyle}"/>
                         </MenuItem>
                     </MenuItem>
                     <MenuItem Header="Connection" Style="{StaticResource MenuItemStyle}">
-                        <MenuItem Header="Host Settings" Style="{StaticResource MenuItemStyle}" />
-                        <MenuItem Header="Guest" Style="{StaticResource MenuItemStyle}" />
-                        <MenuItem Header="Paste" Style="{StaticResource MenuItemStyle}" />
+                        <MenuItem Header="Host Settings" Style="{StaticResource MenuItemStyle}"/>
+                        <MenuItem Header="Guest" Style="{StaticResource MenuItemStyle}"/>
+                        <MenuItem Header="Paste" Style="{StaticResource MenuItemStyle}"/>
                     </MenuItem>
                     <MenuItem Header="View" Style="{StaticResource MenuItemStyle}">
-                        <MenuItem Header="Toolbar" Style="{StaticResource MenuItemStyle}" />
-                        <MenuItem Header="Status Bar" Style="{StaticResource MenuItemStyle}" />
+                        <MenuItem Header="Toolbar" Style="{StaticResource MenuItemStyle}"/>
+                        <MenuItem Header="Status Bar" Style="{StaticResource MenuItemStyle}"/>
                     </MenuItem>
                 </Menu>
                 <!-- Main Content Area -->
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="130"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <!-- Navigation Panel -->
-                    <StackPanel x:Name="NavigationPanel" Grid.Column="0" Background="#383838" VerticalAlignment="Stretch">
+                    <StackPanel x:Name="NavigationPanel" Grid.Column="0" Background="#383838" Grid.ColumnSpan="3">
                         <TextBlock Text="Section 1" Style="{StaticResource NavigationTitleStyle}"/>
-                        <Button Content="Home" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
-                        <Button Content="Play List" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <Button Content="Item1" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <Button Content="Item2" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <TextBlock Text="Section 2" Style="{StaticResource NavigationTitleStyle}"/>
                         <Button Content="Item3" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <Button Content="Item4" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                     </StackPanel>
                     <!-- Main Content -->
-                    <ContentControl x:Name="MainContent" Grid.Column="1" Background="#2E2E2E">
+                    <ContentControl x:Name="MainContent" Grid.Column="3" Background="#2E2E2E">
                         <TextBlock Text="Default Main Content" Foreground="White" FontSize="24"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </ContentControl>
                 </Grid>
             </Grid>
 
-            <!-- Overlay Layer: Global Chat Drawer (with integrated SlideButton) -->
+            <!-- Chat Drawer -->
             <Grid x:Name="ChatDrawer" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="300" Panel.ZIndex="2">
                 <Grid.RenderTransform>
-                    <!-- When closed, X=270 so only the 30px SlideButton shows -->
                     <TranslateTransform x:Name="ChatDrawerTransform" X="270"/>
                 </Grid.RenderTransform>
                 <Grid>
@@ -209,10 +259,14 @@
                     </Grid.ColumnDefinitions>
                     <!-- SlideButton -->
                     <Button x:Name="SlideButton" Style="{StaticResource SlideButtonStyle}" Grid.Column="0"
-                            Click="SlideButton_Click"/>
+                  Click="SlideButton_Click"/>
                     <!-- Chat Content Area -->
                     <Border Grid.Column="1" Background="#4D4D4D">
                         <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,45">
                                 <ScrollViewer.Resources>
                                     <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
@@ -222,46 +276,92 @@
                                 </StackPanel>
                             </ScrollViewer>
                             <!-- Chat Input Section -->
-                            <Grid VerticalAlignment="Bottom" Margin="10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="MessageTextBox" Width="200" Height="30" 
-                                         Background="#252526" Foreground="White" BorderBrush="#4C4481" BorderThickness="1" 
-                                         FontSize="14" Grid.Column="0" KeyDown="MessageTextBox_KeyDown"/>
-                                <Button x:Name="SendButton" Content="Send" Width="80" Height="30" 
-                                        Background="#383838" Foreground="White" BorderBrush="#4C4481" BorderThickness="2" FontSize="14"
-                                        VerticalAlignment="Center" HorizontalAlignment="Right" Grid.Column="1" 
-                                        Click="SendButton_Click" Margin="5,0,0,0"/>
-                            </Grid>
+                            <StackPanel Grid.Row="1" Margin="10">
+                                <!-- Attachments Summary Panel -->
+                                <StackPanel Orientation="Horizontal" x:Name="AttachmentsSummaryPanel" Visibility="Collapsed" Margin="0,0,0,5">
+                                    <Border x:Name="ImageAttachmentIndicator" Background="Red" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
+                                        <TextBlock x:Name="ImageAttachmentCount" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                    <Border x:Name="AudioAttachmentIndicator" Background="Green" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
+                                        <TextBlock x:Name="AudioAttachmentCount" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                    <Border x:Name="ZipAttachmentIndicator" Background="Purple" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
+                                        <TextBlock x:Name="ZipAttachmentCount" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                </StackPanel>
+                                <!-- Chat Input Row -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="AttachFileButton" Content="📎" Width="30" Height="30" Margin="0,0,5,0" Click="AttachFileButton_Click"/>
+                                    <TextBox x:Name="MessageTextBox" Grid.Column="1" Height="30" Background="#252526" Foreground="White" BorderBrush="#4C4481" BorderThickness="1" FontSize="14" KeyDown="MessageTextBox_KeyDown"/>
+                                    <Button x:Name="SendButton" Content="Send" Grid.Column="2" Width="60" Height="30" Background="#383838" Foreground="White" BorderBrush="#4C4481" BorderThickness="2" FontSize="14" Click="SendButton_Click" Margin="5,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
             </Grid>
 
-            <!-- Overlay Layer: Bottom Bar -->
-            <!-- The Bottom Bar dynamically sets its right margin based on the ChatDrawer's visible content width.
-                 The converter now subtracts the SlideButton width (30) so that it sticks to the right edge of the ScrollViewer. -->
-            <Grid x:Name="BottomBar" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Height="100" Panel.ZIndex="1"
-                  MouseEnter="BottomBar_MouseEnter" MouseLeave="BottomBar_MouseLeave">
-                <Grid.RenderTransform>
-                    <!-- When hidden, Y=80 so only the top 20px show -->
-                    <TranslateTransform x:Name="BottomBarTransform" Y="80"/>
-                </Grid.RenderTransform>
+            <!-- Bottom Bar (Status Bar with Music Controls) -->
+            <Grid x:Name="BottomBarContainer" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Panel.ZIndex="1"
+            MouseEnter="BottomBar_MouseEnter" MouseLeave="BottomBar_MouseLeave">
                 <Grid.Margin>
                     <MultiBinding Converter="{StaticResource BottomBarMarginConverter}">
-                        <!-- Bind the drawer's Width and its animated TranslateTransform.X -->
                         <Binding ElementName="ChatDrawer" Path="Width"/>
                         <Binding ElementName="ChatDrawerTransform" Path="X"/>
                     </MultiBinding>
                 </Grid.Margin>
-                <Border Background="#55b155" CornerRadius="10,0,0,0">
-                    <TextBlock Text="Status Bar" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" 
-                               FontSize="16" FontWeight="Bold"/>
+                <!-- The entire Bottom Bar (slider + controls) is now a Border with a RenderTransform -->
+                <Border x:Name="BottomBar" Background="#55b155" CornerRadius="10,0,0,0" Height="100">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="BottomBarTransform" Y="60"/>
+                    </Border.RenderTransform>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="40"/>
+                            <!-- Slider row -->
+                            <RowDefinition Height="60"/>
+                            <!-- Controls row -->
+                        </Grid.RowDefinitions>
+                        <!-- Slider row with elapsed/remaining time labels -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ElapsedTimeText" Grid.Column="0" VerticalAlignment="Center" Foreground="White" Margin="5,0,0,0" Text="0:00"/>
+                            <Slider x:Name="MusicProgressSlider" Grid.Column="1" Style="{StaticResource FancySliderStyle}"
+                      Minimum="0" Maximum="100" ValueChanged="MusicProgressSlider_ValueChanged" Margin="5" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="RemainingTimeText" Grid.Column="2" VerticalAlignment="Center" Foreground="White" Margin="0,0,5,0" Text="0:00"/>
+                        </Grid>
+                        <!-- Controls row -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="MusicTitle" Grid.Column="0" VerticalAlignment="Center" Foreground="White" Margin="5" Text="No Music"/>
+                            <!-- Spacer in Column 1 if desired -->
+                            <Button x:Name="PrevButton" Grid.Column="2" Content="⏮" Click="PrevButton_Click" Margin="5"/>
+                            <Button x:Name="PlayPauseButton" Grid.Column="3" Content="▶" Click="PlayPauseButton_Click" Margin="5"/>
+                            <Button x:Name="NextButton" Grid.Column="4" Content="⏭" Click="NextButton_Click" Margin="5"/>
+                            <Button x:Name="FutureButton" Grid.Column="5" Content="?" Click="FutureButton_Click" Margin="5"/>
+                        </Grid>
+                    </Grid>
                 </Border>
+                <!-- Hidden MediaElement for playing music (Manual control) -->
+                <MediaElement x:Name="MusicPlayer" LoadedBehavior="Manual" UnloadedBehavior="Manual"
+                      Visibility="Collapsed" MediaOpened="MusicPlayer_MediaOpened" MediaEnded="MusicPlayer_MediaEnded"/>
             </Grid>
-
         </Grid>
     </Border>
 </Window>

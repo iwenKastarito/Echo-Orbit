@@ -1,7 +1,8 @@
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Dash.baml
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.csproj.AssemblyReference.cache
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Dash.g.cs
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\MainWindow.g.cs
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\App.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\GeneratedInternalTypeHelper.g.cs
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit_MarkupCompile.cache
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit_MarkupCompile.lref
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows\Echo Orbit.exe
@@ -23,17 +24,17 @@ C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows\ru\Mi
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows\tr\Microsoft.SqlServer.TransactSql.ScriptDom.resources.dll
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows\zh-Hans\Microsoft.SqlServer.TransactSql.ScriptDom.resources.dll
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows\zh-Hant\Microsoft.SqlServer.TransactSql.ScriptDom.resources.dll
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.csproj.AssemblyReference.cache
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Dash.baml
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\MainWindow.baml
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.g.resources
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.AssemblyInfoInputs.cache
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.AssemblyInfo.cs
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.csproj.CoreCompileInputs.cache
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.sourcelink.json
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.csproj.Up2Date
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.dll
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\refint\Echo Orbit.dll
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.pdb
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\Echo Orbit.genruntimeconfig.cache
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\ref\Echo Orbit.dll
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows\GeneratedInternalTypeHelper.g.cs
