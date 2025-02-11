@@ -350,6 +350,7 @@
                     <Grid Grid.Column="1">
                         <controls:BeeHivePanel x:Name="BeeHiveBackground" IsHitTestVisible="False"/>
 
+
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>

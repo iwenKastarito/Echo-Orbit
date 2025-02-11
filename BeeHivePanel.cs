@@ -40,28 +40,96 @@ namespace EchoOrbit.Controls
         public double ShimmerAmplitude { get; set; } = 0.07; // maximum offset as fraction of bounding box
         public double ShimmerFrequency { get; set; } = 0.5;   // frequency multiplier
 
-        private Point mousePosition = new Point(-1000, -1000);
+        // Cache the base hexagon geometry (centered at 0,0).
+        private Geometry _baseHexagonGeometry;
+
+        // Cache for drop shadow brush.
+        private SolidColorBrush _shadowBrush;
+
+        // Timestamp for update frequency control (target ~30 FPS).
+        private DateTime _lastUpdate = DateTime.MinValue;
+
+        #region Dependency Property: IsBeehiveActive
+        /// <summary>
+        /// When set to false, the BeeHivePanel will skip its per‑frame calculations.
+        /// You can bind or set this property from your window’s code‑behind.
+        /// </summary>
+        public static readonly DependencyProperty IsBeehiveActiveProperty =
+            DependencyProperty.Register(
+                nameof(IsBeehiveActive),
+                typeof(bool),
+                typeof(BeeHivePanel),
+                new PropertyMetadata(true));
+
+        public bool IsBeehiveActive
+        {
+            get => (bool)GetValue(IsBeehiveActiveProperty);
+            set => SetValue(IsBeehiveActiveProperty, value);
+        }
+        #endregion
 
         public BeeHivePanel()
         {
-            // Update _time on each rendering pass.
+            Loaded += BeeHivePanel_Loaded;
+            Unloaded += BeeHivePanel_Unloaded;
+        }
+
+        private void BeeHivePanel_Loaded(object sender, RoutedEventArgs e)
+        {
             CompositionTarget.Rendering += OnRendering;
         }
 
+        private void BeeHivePanel_Unloaded(object sender, RoutedEventArgs e)
+        {
+            CompositionTarget.Rendering -= OnRendering;
+        }
+
+        /// <summary>
+        /// Called on every render pass. This method updates only if:
+        /// - The BeeHivePanel is active,
+        /// - The parent window is active and not minimized, and
+        /// - At least ~33ms have elapsed since the last update (30 FPS).
+        /// </summary>
         private void OnRendering(object sender, EventArgs e)
         {
+            if (!IsBeehiveActive)
+                return;
+
+            Window parentWindow = Window.GetWindow(this);
+            if (parentWindow == null || !parentWindow.IsActive || parentWindow.WindowState == WindowState.Minimized)
+                return;
+
+            DateTime now = DateTime.UtcNow;
+            if ((now - _lastUpdate).TotalMilliseconds < 100) // 100ms for 10 FPS
+                return;
+            _lastUpdate = now;
+
             _time += 0.02; // Adjust speed as desired.
             InvalidateVisual();
         }
+
 
         protected override void OnRender(DrawingContext dc)
         {
             base.OnRender(dc);
 
-            // Always get the current mouse position relative to this panel.
+            // Create and cache the base hexagon geometry if needed.
+            if (_baseHexagonGeometry == null)
+            {
+                _baseHexagonGeometry = CreateBaseHexagonGeometry();
+            }
+
+            // Create and cache the shadow brush if needed.
+            if (_shadowBrush == null)
+            {
+                _shadowBrush = new SolidColorBrush(Color.FromArgb((byte)(ShadowOpacity * 255), 0, 0, 0));
+                _shadowBrush.Freeze();
+            }
+
+            // Get the current mouse position relative to this control.
             Point mousePos = Mouse.GetPosition(this);
 
-            // Draw overall background.
+            // Draw the overall background.
             dc.DrawRectangle(BaseFill, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
             int colCount = (int)Math.Ceiling(ActualWidth / HorizontalSpacing) + 1;
@@ -72,6 +140,7 @@ namespace EchoOrbit.Controls
             if (BaseFill is SolidColorBrush scb)
                 baseFillColor = scb.Color;
 
+            // Loop through grid cells.
             for (int col = 0; col < colCount; col++)
             {
                 for (int row = 0; row < rowCount; row++)
@@ -81,51 +150,23 @@ namespace EchoOrbit.Controls
                     if (col % 2 == 1)
                         centerY += VerticalSpacing / 2;
 
-                    // Use mousePos instead of a stored mousePosition.
+                    // Compute distance from hexagon center to current mouse position.
                     double dx = centerX - mousePos.X;
                     double dy = centerY - mousePos.Y;
                     double distance = Math.Sqrt(dx * dx + dy * dy);
 
+                    // Compute interpolation factor (squared for smoother transitions).
                     double t = Math.Max(0, 1 - (distance / HighlightThreshold));
                     t = t * t;
 
-                    // Define hexagon vertices (flat‑topped).
-                    Point v0 = new Point(centerX - R, centerY);
-                    Point v1 = new Point(centerX - R / 2, centerY - (R * Math.Sqrt(3) / 2));
-                    Point v2 = new Point(centerX + R / 2, centerY - (R * Math.Sqrt(3) / 2));
-                    Point v3 = new Point(centerX + R, centerY);
-                    Point v4 = new Point(centerX + R / 2, centerY + (R * Math.Sqrt(3) / 2));
-                    Point v5 = new Point(centerX - R / 2, centerY + (R * Math.Sqrt(3) / 2));
-
-                    StreamGeometry hexGeometry = new StreamGeometry();
-                    using (StreamGeometryContext ctx = hexGeometry.Open())
-                    {
-                        ctx.BeginFigure(v0, true, true);
-                        ctx.LineTo(v1, true, false);
-                        ctx.LineTo(v2, true, false);
-                        ctx.LineTo(v3, true, false);
-                        ctx.LineTo(v4, true, false);
-                        ctx.LineTo(v5, true, false);
-                    }
-                    hexGeometry.Freeze();
-
-                    // 1. Draw drop shadow.
-                    dc.PushTransform(new TranslateTransform(ShadowOffset.X, ShadowOffset.Y));
-                    SolidColorBrush shadowBrush = new SolidColorBrush(Color.FromArgb((byte)(ShadowOpacity * 255), 0, 0, 0));
-                    shadowBrush.Freeze();
-                    dc.DrawGeometry(shadowBrush, null, hexGeometry);
-                    dc.Pop();
-
-                    // 2. Calculate a shimmer offset for a dynamic radial gradient.
-                    // Use the grid position (col, row) to vary each hexagon's phase.
+                    // Compute shimmer offset.
                     double phase = _time + (col + row) * ShimmerFrequency;
                     double offsetX = ShimmerAmplitude * Math.Sin(phase);
                     double offsetY = ShimmerAmplitude * Math.Cos(phase);
 
-                    // 3. Create a dynamic radial gradient fill with a subtle shimmer.
+                    // Create a dynamic radial gradient brush.
                     RadialGradientBrush gradientBrush = new RadialGradientBrush
                     {
-                        // Animate the gradient origin for a shimmering effect.
                         GradientOrigin = new Point(0.5 + offsetX, 0.5 + offsetY),
                         Center = new Point(0.5, 0.5),
                         RadiusX = 0.5,
@@ -138,9 +179,18 @@ namespace EchoOrbit.Controls
                     gradientBrush.GradientStops.Add(new GradientStop(baseFillColor, 1.0));
                     gradientBrush.Freeze();
 
-                    dc.DrawGeometry(gradientBrush, null, hexGeometry);
+                    // Draw drop shadow by translating to (centerX + ShadowOffset, centerY + ShadowOffset).
+                    dc.PushTransform(new TranslateTransform(centerX + ShadowOffset.X, centerY + ShadowOffset.Y));
+                    dc.DrawGeometry(_shadowBrush, null, _baseHexagonGeometry);
+                    dc.Pop();
 
-                    // 4. Draw a refined glow effect.
+                    // Draw the hexagon by translating to its center.
+                    dc.PushTransform(new TranslateTransform(centerX, centerY));
+
+                    // Draw dynamic gradient fill.
+                    dc.DrawGeometry(gradientBrush, null, _baseHexagonGeometry);
+
+                    // Draw glow effect if applicable.
                     if (t > 0.1)
                     {
                         double glowThickness = (1 + 3 * t) * GlowMultiplier;
@@ -153,10 +203,10 @@ namespace EchoOrbit.Controls
                             EndLineCap = PenLineCap.Round
                         };
                         glowPen.Freeze();
-                        dc.DrawGeometry(null, glowPen, hexGeometry);
+                        dc.DrawGeometry(null, glowPen, _baseHexagonGeometry);
                     }
 
-                    // 5. Draw the hexagon outline.
+                    // Draw hexagon outline.
                     Color strokeColor = InterpolateColor(BaseStrokeColor, HighlightStrokeColor, t);
                     double strokeThickness = 1 + 3 * t;
                     Pen pen = new Pen(new SolidColorBrush(strokeColor), strokeThickness)
@@ -166,9 +216,31 @@ namespace EchoOrbit.Controls
                         EndLineCap = PenLineCap.Round
                     };
                     pen.Freeze();
-                    dc.DrawGeometry(null, pen, hexGeometry);
+                    dc.DrawGeometry(null, pen, _baseHexagonGeometry);
+
+                    dc.Pop(); // End hexagon transform.
                 }
             }
+        }
+
+        /// <summary>
+        /// Creates and returns a base hexagon geometry centered at (0,0).
+        /// </summary>
+        private Geometry CreateBaseHexagonGeometry()
+        {
+            var geo = new StreamGeometry();
+            using (var ctx = geo.Open())
+            {
+                // Define a flat-topped hexagon with vertices relative to (0,0)
+                ctx.BeginFigure(new Point(-R, 0), true, true);
+                ctx.LineTo(new Point(-R / 2, -R * Math.Sqrt(3) / 2), true, false);
+                ctx.LineTo(new Point(R / 2, -R * Math.Sqrt(3) / 2), true, false);
+                ctx.LineTo(new Point(R, 0), true, false);
+                ctx.LineTo(new Point(R / 2, R * Math.Sqrt(3) / 2), true, false);
+                ctx.LineTo(new Point(-R / 2, R * Math.Sqrt(3) / 2), true, false);
+            }
+            geo.Freeze();
+            return geo;
         }
 
         /// <summary>
@@ -181,20 +253,6 @@ namespace EchoOrbit.Controls
             byte g = (byte)(from.G + (to.G - from.G) * t);
             byte b = (byte)(from.B + (to.B - from.B) * t);
             return Color.FromArgb(a, r, g, b);
-        }
-
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-            mousePosition = e.GetPosition(this);
-            InvalidateVisual();
-        }
-
-        protected override void OnMouseLeave(MouseEventArgs e)
-        {
-            base.OnMouseLeave(e);
-            mousePosition = new Point(-1000, -1000);
-            InvalidateVisual();
         }
 
         protected override Size MeasureOverride(Size availableSize) => availableSize;

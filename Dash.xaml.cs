@@ -238,14 +238,17 @@ namespace EchoOrbit
             {
                 Storyboard slideIn = (Storyboard)FindResource("SlideIn");
                 slideIn.Begin();
+                BeeHiveBackground.IsBeehiveActive = true; // Reactivate when open.
             }
             else
             {
                 Storyboard slideOut = (Storyboard)FindResource("SlideOut");
                 slideOut.Begin();
+                BeeHiveBackground.IsBeehiveActive = false; // Pause updates when closed.
             }
             isDrawerOpen = !isDrawerOpen;
         }
+
 
         private void AttachFileButton_Click(object sender, RoutedEventArgs e)
         {
