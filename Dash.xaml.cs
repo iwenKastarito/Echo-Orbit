@@ -232,6 +232,82 @@ namespace EchoOrbit
             return false;
         }
 
+
+
+
+        // When files enter the chat area, show the overlay.
+        // Called when dragged files enter the chat area.
+        // Called when dragged files enter the chat area.
+        private void ChatArea_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                DropOverlay.Visibility = Visibility.Visible;
+            }
+            e.Handled = true;
+        }
+
+        // Called when files are dragged over the chat area.
+        private void ChatArea_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        // Called when the dragged files leave the chat area.
+        private void ChatArea_DragLeave(object sender, DragEventArgs e)
+        {
+            DropOverlay.Visibility = Visibility.Collapsed;
+            e.Handled = true;
+        }
+
+        // Called when files are dropped onto the chat area.
+        private void ChatArea_Drop(object sender, DragEventArgs e)
+        {
+            DropOverlay.Visibility = Visibility.Collapsed;
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] droppedFiles = (string[])e.Data.GetData(DataFormats.FileDrop);
+                ProcessAttachedFiles(droppedFiles);
+            }
+            e.Handled = true;
+        }
+
+        // Example helper method to process attached files.
+        private void ProcessAttachedFiles(string[] fileNames)
+        {
+            foreach (string selectedFile in fileNames)
+            {
+                string ext = System.IO.Path.GetExtension(selectedFile).ToLower();
+                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp")
+                {
+                    imageAttachments.Add(selectedFile);
+                }
+                else if (ext == ".mp3" || ext == ".wav" || ext == ".wma")
+                {
+                    audioAttachments.Add(selectedFile);
+                }
+                else if (ext == ".zip")
+                {
+                    zipAttachments.Add(selectedFile);
+                }
+            }
+            UpdateAttachmentsUI();
+        }
+
+
+
+
+
+
         private void SlideButton_Click(object sender, RoutedEventArgs e)
         {
             if (!isDrawerOpen)

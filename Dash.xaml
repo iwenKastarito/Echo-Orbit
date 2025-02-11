@@ -346,11 +346,15 @@
                         <ColumnDefinition Width="270"/>
                     </Grid.ColumnDefinitions>
                     <Button x:Name="SlideButton" Style="{StaticResource SlideButtonStyle}" Grid.Column="0" Click="SlideButton_Click"/>
-                    <!-- Use the custom BeeHivePanel as the background for the chat area -->
-                    <Grid Grid.Column="1">
-                        <controls:BeeHivePanel x:Name="BeeHiveBackground" IsHitTestVisible="False"/>
-
-
+                    <!-- Chat Content Container with Drag & Drop enabled -->
+                    <Grid x:Name="ChatContentGrid" Grid.Column="1" AllowDrop="True"
+      DragEnter="ChatArea_DragEnter"
+      DragLeave="ChatArea_DragLeave"
+      DragOver="ChatArea_DragOver"
+      Drop="ChatArea_Drop">
+                        <!-- Your background panel -->
+                        <controls:BeeHivePanel x:Name="BeeHiveBackground" />
+                        <!-- The main chat content -->
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -386,9 +390,16 @@
                                 </Grid>
                             </StackPanel>
                         </Grid>
+                        <!-- Updated overlay element for drag feedback with darker background and white text -->
+                        <Border x:Name="DropOverlay" Background="#AA000000" Visibility="Collapsed" IsHitTestVisible="False">
+                            <TextBlock Text="Drop files here" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                     </Grid>
+
                 </Grid>
             </Grid>
+
+
 
             <!-- Bottom Bar Container -->
             <Grid x:Name="BottomBarContainer" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Panel.ZIndex="1"
