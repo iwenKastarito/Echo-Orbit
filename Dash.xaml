@@ -348,10 +348,10 @@
                     <Button x:Name="SlideButton" Style="{StaticResource SlideButtonStyle}" Grid.Column="0" Click="SlideButton_Click"/>
                     <!-- Chat Content Container with Drag & Drop enabled -->
                     <Grid x:Name="ChatContentGrid" Grid.Column="1" AllowDrop="True"
-      DragEnter="ChatArea_DragEnter"
-      DragLeave="ChatArea_DragLeave"
-      DragOver="ChatArea_DragOver"
-      Drop="ChatArea_Drop">
+                          DragEnter="ChatArea_DragEnter"
+                          DragLeave="ChatArea_DragLeave"
+                          DragOver="ChatArea_DragOver"
+                          Drop="ChatArea_Drop">
                         <!-- Your background panel -->
                         <controls:BeeHivePanel x:Name="BeeHiveBackground" />
                         <!-- The main chat content -->
@@ -395,11 +395,8 @@
                             <TextBlock Text="Drop files here" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </Grid>
-
                 </Grid>
             </Grid>
-
-
 
             <!-- Bottom Bar Container -->
             <Grid x:Name="BottomBarContainer" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Panel.ZIndex="1"
@@ -416,21 +413,80 @@
                         <TranslateTransform x:Name="BottomBarTransform" Y="60"/>
                     </Border.RenderTransform>
                     <Grid>
-                        <!-- Layer 0: Audio Thumbnail with rounded corners (using Border and explicit Clip) -->
-                        <Border HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="150" CornerRadius="10" ClipToBounds="True" Panel.ZIndex="0">
-                            <Image x:Name="AudioThumbnailImage" Source="pack://application:,,,/defaultAudioImage.png" Stretch="UniformToFill">
-                                <Image.Clip>
-                                    <RectangleGeometry Rect="0,0,150,100" RadiusX="10" RadiusY="10"/>
-                                </Image.Clip>
-                            </Image>
+                        <!-- Layer 0: Audio Thumbnail with custom clip (bottom-left is sharp) -->
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="150" Panel.ZIndex="0">
+                            <Border.Clip>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="10,0" IsClosed="True">
+                                        <!-- Top edge -->
+                                        <LineSegment Point="140,0"/>
+                                        <!-- Top-right corner rounded -->
+                                        <ArcSegment Point="150,10" Size="10,10" SweepDirection="Clockwise"/>
+                                        <!-- Right edge -->
+                                        <LineSegment Point="150,90"/>
+                                        <!-- Bottom-right corner rounded -->
+                                        <ArcSegment Point="140,100" Size="10,10" SweepDirection="Clockwise"/>
+                                        <!-- Bottom edge: goes straight to bottom-left (sharp) -->
+                                        <LineSegment Point="0,100"/>
+                                        <!-- Left edge -->
+                                        <LineSegment Point="0,10"/>
+                                        <!-- Top-left corner rounded -->
+                                        <ArcSegment Point="10,0" Size="10,10" SweepDirection="Clockwise"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </Border.Clip>
+                            <Image x:Name="AudioThumbnailImage"
+                                     Source="pack://application:,,,/defaultAudioImage.png"
+                                     Stretch="UniformToFill"/>
                         </Border>
-                        <!-- Layer 1: Semi-transparent green overlay with rounded corners -->
-                        <Rectangle HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="150" Fill="#8855b155" Panel.ZIndex="1">
+
+                        <!-- Layer 1: Semi-transparent green overlay with same custom clip and mouse-over effect -->
+                        <Rectangle x:Name="OverlayRect"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Stretch"
+                               Width="150"
+                               Fill="#8855b155"
+                               Panel.ZIndex="1">
                             <Rectangle.Clip>
-                                <RectangleGeometry Rect="0,0,150,100" RadiusX="10" RadiusY="10"/>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="10,0" IsClosed="True">
+                                        <LineSegment Point="140,0"/>
+                                        <ArcSegment Point="150,10" Size="10,10" SweepDirection="Clockwise"/>
+                                        <LineSegment Point="150,90"/>
+                                        <ArcSegment Point="140,100" Size="10,10" SweepDirection="Clockwise"/>
+                                        <LineSegment Point="0,100"/>
+                                        <LineSegment Point="0,10"/>
+                                        <ArcSegment Point="10,0" Size="10,10" SweepDirection="Clockwise"/>
+                                    </PathFigure>
+                                </PathGeometry>
                             </Rectangle.Clip>
+                            <Rectangle.Style>
+                                <Style TargetType="Rectangle">
+                                    <Setter Property="Opacity" Value="1"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Trigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.5"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.EnterActions>
+                                            <Trigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.5"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.ExitActions>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Rectangle.Style>
                         </Rectangle>
-                        <!-- Layer 2: Controls -->
+
+
+                        <!-- Layer 2: Media Controls -->
                         <Grid Panel.ZIndex="2">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="40"/>
@@ -455,7 +511,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <!-- MusicTitle container (fixed width, clipped) -->
+                                <!-- MusicTitle container -->
                                 <Border Grid.Column="0" Style="{StaticResource MusicTitleContainerStyle}">
                                     <TextBlock x:Name="MusicTitle" Style="{StaticResource MusicTitleTextStyle}" Text="No Music"/>
                                 </Border>
