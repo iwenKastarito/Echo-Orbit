@@ -132,7 +132,7 @@ namespace EchoOrbit
                     {
                         // No embedded image: load default image.
                         bmp.BeginInit();
-                        bmp.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.png", UriKind.Absolute);
+                        bmp.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
                         bmp.CacheOption = BitmapCacheOption.OnLoad;
                         bmp.EndInit();
                     }
@@ -141,7 +141,7 @@ namespace EchoOrbit
                 {
                     // In case of error, load the default image.
                     bmp.BeginInit();
-                    bmp.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.png", UriKind.Absolute);
+                    bmp.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
                     bmp.CacheOption = BitmapCacheOption.OnLoad;
                     bmp.EndInit();
                 }

@@ -208,16 +208,27 @@ namespace EchoOrbit
             if (sender is Button btn)
             {
                 string item = btn.Content.ToString();
-                MainContent.Content = new TextBlock
+                if (item == "Item2")
                 {
-                    Text = "You selected " + item,
-                    Foreground = Brushes.White,
-                    FontSize = 24,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
+                    // When "Item2" is clicked, display the PlaylistControl.
+                    MainContent.Content = new EchoOrbit.Controls.PlaylistControl();
+                }
+                else
+                {
+                    // Default content for other items.
+                    MainContent.Content = new TextBlock
+                    {
+                        Text = "You selected " + item,
+                        Foreground = Brushes.White,
+                        FontSize = 24,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                }
             }
         }
+
+
 
         private void BottomBar_MouseEnter(object sender, MouseEventArgs e)
         {

@@ -10,12 +10,21 @@
     <Compile Update="Dash.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="PlaylistControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Dash.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="MainWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PlaylistControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PlaylistView.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

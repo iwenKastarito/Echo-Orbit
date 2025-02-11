@@ -321,14 +321,17 @@
                         <ColumnDefinition Width="130"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
+                    <!-- NavigationPanel (excerpt from existing code) -->
                     <StackPanel x:Name="NavigationPanel" Grid.Column="0" Background="{StaticResource MenuBackgroundBrush}" Grid.ColumnSpan="3">
                         <TextBlock Text="Section 1" Style="{StaticResource NavigationTitleStyle}"/>
                         <Button Content="Item1" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <!-- Change Item2 to trigger the playlist view -->
                         <Button Content="Item2" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <TextBlock Text="Section 2" Style="{StaticResource NavigationTitleStyle}"/>
                         <Button Content="Item3" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <Button Content="Item4" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                     </StackPanel>
+
                     <ContentControl x:Name="MainContent" Grid.Column="3" Background="{StaticResource PrimaryBackgroundBrush}">
                         <TextBlock Text="Default Main Content" Foreground="{StaticResource TextBrush}" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </ContentControl>
