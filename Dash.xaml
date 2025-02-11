@@ -2,20 +2,68 @@
 <Window x:Class="EchoOrbit.Dash"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:EchoOrbit"
+        xmlns:conv="clr-namespace:EchoOrbit.Converters"
+        xmlns:controls="clr-namespace:EchoOrbit.Controls"
         Title="Dashboard" Height="450" Width="800"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent">
     <Window.Resources>
+        <!-- Color Resources -->
+        <Color x:Key="PrimaryBackgroundColor">#2E2E2E</Color>
+        <Color x:Key="SecondaryBackgroundColor">#383838</Color>
+        <Color x:Key="AccentColor">#55B155</Color>
+        <Color x:Key="ChatDrawerBackgroundColor">#4D4D4D</Color>
+        <Color x:Key="MenuBackgroundColor">#383838</Color>
+        <Color x:Key="MenuHeaderForegroundColor">#2E2E2E</Color>
+        <Color x:Key="MenuItemForegroundColor">#CFC9C4</Color>
+        <Color x:Key="MenuItemHoverBackgroundColor">#3D3D3D</Color>
+        <Color x:Key="ButtonNormalColor">#555555</Color>
+        <Color x:Key="ButtonHoverColor">#777777</Color>
+        <Color x:Key="ButtonPressedColor">SteelBlue</Color>
+        <Color x:Key="TrackBackgroundColor">DarkGray</Color>
+        <Color x:Key="ProgressFillColor">Green</Color>
+        <Color x:Key="ThumbBackgroundColor">White</Color>
+        <Color x:Key="EnhancedNavigationStartColor">#4e4e4e</Color>
+        <Color x:Key="EnhancedNavigationEndColor">#2E2E2E</Color>
+        <Color x:Key="EnhancedNavigationHoverStartColor">#5e5e5e</Color>
+        <Color x:Key="EnhancedNavigationHoverEndColor">#3e3e3e</Color>
+        <Color x:Key="EnhancedNavigationBorderColor">#4C4481</Color>
+        <Color x:Key="MediaControlStartColor">#3a3a3a</Color>
+        <Color x:Key="MediaControlEndColor">#1e1e1e</Color>
+        <Color x:Key="MediaControlHoverStartColor">#4a4a4a</Color>
+        <Color x:Key="MediaControlHoverEndColor">#2e2e2e</Color>
+        <Color x:Key="TextColor">White</Color>
+        <!-- Brush Resources -->
+        <SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
+        <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+        <SolidColorBrush x:Key="MenuBackgroundBrush" Color="{StaticResource MenuBackgroundColor}"/>
+        <SolidColorBrush x:Key="MenuHeaderForegroundBrush" Color="{StaticResource MenuHeaderForegroundColor}"/>
+        <SolidColorBrush x:Key="MenuItemForegroundBrush" Color="{StaticResource MenuItemForegroundColor}"/>
+        <SolidColorBrush x:Key="MenuItemHoverBackgroundBrush" Color="{StaticResource MenuItemHoverBackgroundColor}"/>
+        <SolidColorBrush x:Key="ButtonNormalBrush" Color="{StaticResource ButtonNormalColor}"/>
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="{StaticResource ButtonHoverColor}"/>
+        <SolidColorBrush x:Key="ButtonPressedBrush" Color="{StaticResource ButtonPressedColor}"/>
+        <SolidColorBrush x:Key="TrackBackgroundBrush" Color="{StaticResource TrackBackgroundColor}"/>
+        <SolidColorBrush x:Key="ProgressFillBrush" Color="{StaticResource ProgressFillColor}"/>
+        <SolidColorBrush x:Key="ThumbBackgroundBrush" Color="{StaticResource ThumbBackgroundColor}"/>
+        <SolidColorBrush x:Key="EnhancedNavigationBorderBrush" Color="{StaticResource EnhancedNavigationBorderColor}"/>
+        <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
+        <SolidColorBrush x:Key="NavigationTextBrush" Color="{StaticResource TextColor}"/>
+        <SolidColorBrush x:Key="ImageAttachmentIndicatorBrush" Color="Red"/>
+        <SolidColorBrush x:Key="AudioAttachmentIndicatorBrush" Color="Green"/>
+        <SolidColorBrush x:Key="ZipAttachmentIndicatorBrush" Color="Purple"/>
+        <SolidColorBrush x:Key="TextBoxBackgroundBrush" Color="#252526"/>
+
         <!-- Converters -->
-        <local:SliderProgressWidthConverter x:Key="SliderProgressWidthConverter"/>
-        <local:BottomBarMarginConverter x:Key="BottomBarMarginConverter"/>
-        <local:OneSixthMarginConverter x:Key="OneSixthMarginConverter"/>
+        <conv:SliderProgressWidthConverter x:Key="SliderProgressWidthConverter"/>
+        <conv:BottomBarMarginConverter x:Key="BottomBarMarginConverter"/>
+        <conv:OneSixthMarginConverter x:Key="OneSixthMarginConverter"/>
 
         <!-- Custom ScrollBar style -->
         <Style x:Key="CustomScrollBarStyle" TargetType="ScrollBar">
-            <Setter Property="Background" Value="#2E2E2E"/>
-            <Setter Property="Foreground" Value="#55B155"/>
+            <Setter Property="Background" Value="{StaticResource SecondaryBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
             <Setter Property="Width" Value="7"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -26,7 +74,7 @@
                                     <RepeatButton Style="{x:Null}" Height="0"/>
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb Background="#4D4D4D" BorderThickness="0"/>
+                                    <Thumb Background="{StaticResource TrackBackgroundBrush}" BorderThickness="0"/>
                                 </Track.Thumb>
                                 <Track.IncreaseRepeatButton>
                                     <RepeatButton Style="{x:Null}" Height="0"/>
@@ -52,8 +100,8 @@
                     <ControlTemplate TargetType="Slider">
                         <Grid x:Name="templateRoot">
                             <Grid>
-                                <Border x:Name="TrackBackground" Background="DarkGray" Height="8" VerticalAlignment="Center" CornerRadius="4"/>
-                                <Rectangle x:Name="ProgressFill" Fill="Green" Height="8" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                <Border x:Name="TrackBackground" Background="{StaticResource TrackBackgroundBrush}" Height="8" VerticalAlignment="Center" CornerRadius="4"/>
+                                <Rectangle x:Name="ProgressFill" Fill="{StaticResource ProgressFillBrush}" Height="8" VerticalAlignment="Center" HorizontalAlignment="Left">
                                     <Rectangle.Width>
                                         <MultiBinding Converter="{StaticResource SliderProgressWidthConverter}">
                                             <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Value"/>
@@ -65,7 +113,7 @@
                             </Grid>
                             <Track x:Name="PART_Track" Margin="0" Focusable="False" IsDirectionReversed="False">
                                 <Track.Thumb>
-                                    <Thumb Background="White" Width="15" Height="15" Template="{StaticResource ThumbTemplate}"/>
+                                    <Thumb Background="{StaticResource ThumbBackgroundBrush}" Width="15" Height="15" Template="{StaticResource ThumbTemplate}"/>
                                 </Track.Thumb>
                             </Track>
                         </Grid>
@@ -90,16 +138,16 @@
 
         <!-- MenuItem Style -->
         <Style x:Key="MenuItemStyle" TargetType="MenuItem">
-            <Setter Property="Background" Value="#383838"/>
-            <Setter Property="Foreground" Value="#CFC9C4"/>
+            <Setter Property="Background" Value="{StaticResource MenuBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource MenuItemForegroundBrush}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3D3D3D"/>
-                    <Setter Property="Foreground" Value="#CFC9C4"/>
+                    <Setter Property="Background" Value="{StaticResource MenuItemHoverBackgroundBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource MenuItemForegroundBrush}"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="SteelBlue"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="{StaticResource ButtonPressedBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -109,13 +157,13 @@
             <Setter Property="Background">
                 <Setter.Value>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#4e4e4e" Offset="0"/>
-                        <GradientStop Color="#2E2E2E" Offset="1"/>
+                        <GradientStop Color="{StaticResource EnhancedNavigationStartColor}" Offset="0"/>
+                        <GradientStop Color="{StaticResource EnhancedNavigationEndColor}" Offset="1"/>
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#4C4481"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource EnhancedNavigationBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10"/>
             <Setter Property="Margin" Value="5"/>
@@ -124,7 +172,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}"
-                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -132,14 +180,14 @@
                                 <Setter TargetName="border" Property="Background">
                                     <Setter.Value>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#5e5e5e" Offset="0"/>
-                                            <GradientStop Color="#3e3e3e" Offset="1"/>
+                                            <GradientStop Color="{StaticResource EnhancedNavigationHoverStartColor}" Offset="0"/>
+                                            <GradientStop Color="{StaticResource EnhancedNavigationHoverEndColor}" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="SteelBlue"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -151,14 +199,14 @@
         <Style x:Key="SlideButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="70"/>
-            <Setter Property="Background" Value="#555555"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource ButtonNormalBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderBrush="#4C4481" BorderThickness="1">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderBrush="{StaticResource EnhancedNavigationBorderBrush}" BorderThickness="1">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -166,10 +214,10 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#777777"/>
+                    <Setter Property="Background" Value="{StaticResource ButtonHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="SteelBlue"/>
+                    <Setter Property="Background" Value="{StaticResource ButtonPressedBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -181,12 +229,12 @@
             <Setter Property="Background">
                 <Setter.Value>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#3a3a3a" Offset="0"/>
-                        <GradientStop Color="#1e1e1e" Offset="1"/>
+                        <GradientStop Color="{StaticResource MediaControlStartColor}" Offset="0"/>
+                        <GradientStop Color="{StaticResource MediaControlEndColor}" Offset="1"/>
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -201,14 +249,14 @@
                                 <Setter TargetName="mediaBorder" Property="Background">
                                     <Setter.Value>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#4a4a4a" Offset="0"/>
-                                            <GradientStop Color="#2e2e2e" Offset="1"/>
+                                            <GradientStop Color="{StaticResource MediaControlHoverStartColor}" Offset="0"/>
+                                            <GradientStop Color="{StaticResource MediaControlHoverEndColor}" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="mediaBorder" Property="Background" Value="SteelBlue"/>
+                                <Setter TargetName="mediaBorder" Property="Background" Value="{StaticResource ButtonPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -222,7 +270,7 @@
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <Style x:Key="MusicTitleTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="5,0,0,0"/>
             <Setter Property="Text" Value="No Music"/>
@@ -232,14 +280,14 @@
         <Style x:Key="NavigationTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource NavigationTextBrush}"/>
             <Setter Property="Margin" Value="10,15,10,5"/>
         </Style>
     </Window.Resources>
 
     <!-- Outer Border (draggable from anywhere outside the BottomBar) -->
-    <Border CornerRadius="10" Background="#2E2E2E" BorderThickness="1" BorderBrush="Black"
-          MouseLeftButtonDown="OuterBorder_MouseLeftButtonDown">
+    <Border CornerRadius="10" Background="{StaticResource PrimaryBackgroundBrush}" BorderThickness="1" BorderBrush="Black"
+            MouseLeftButtonDown="OuterBorder_MouseLeftButtonDown">
         <Grid>
             <!-- Main Content Grid -->
             <Grid x:Name="ContentGrid">
@@ -247,7 +295,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Menu Grid.Row="0" Background="#383838" Foreground="#2E2E2E">
+                <Menu Grid.Row="0" Background="{StaticResource MenuBackgroundBrush}" Foreground="{StaticResource MenuHeaderForegroundBrush}">
                     <MenuItem Header="File" Style="{StaticResource MenuItemStyle}">
                         <MenuItem Header="New" Style="{StaticResource MenuItemStyle}"/>
                         <MenuItem Header="Open" Style="{StaticResource MenuItemStyle}" Click="FileOpen_Click"/>
@@ -273,7 +321,7 @@
                         <ColumnDefinition Width="130"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel x:Name="NavigationPanel" Grid.Column="0" Background="#383838" Grid.ColumnSpan="3">
+                    <StackPanel x:Name="NavigationPanel" Grid.Column="0" Background="{StaticResource MenuBackgroundBrush}" Grid.ColumnSpan="3">
                         <TextBlock Text="Section 1" Style="{StaticResource NavigationTitleStyle}"/>
                         <Button Content="Item1" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <Button Content="Item2" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
@@ -281,8 +329,8 @@
                         <Button Content="Item3" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <Button Content="Item4" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                     </StackPanel>
-                    <ContentControl x:Name="MainContent" Grid.Column="3" Background="#2E2E2E">
-                        <TextBlock Text="Default Main Content" Foreground="White" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <ContentControl x:Name="MainContent" Grid.Column="3" Background="{StaticResource PrimaryBackgroundBrush}">
+                        <TextBlock Text="Default Main Content" Foreground="{StaticResource TextBrush}" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </ContentControl>
                 </Grid>
             </Grid>
@@ -298,7 +346,10 @@
                         <ColumnDefinition Width="270"/>
                     </Grid.ColumnDefinitions>
                     <Button x:Name="SlideButton" Style="{StaticResource SlideButtonStyle}" Grid.Column="0" Click="SlideButton_Click"/>
-                    <Border Grid.Column="1" Background="#4D4D4D">
+                    <!-- Use the custom BeeHivePanel as the background for the chat area -->
+                    <Grid Grid.Column="1">
+                        <controls:BeeHivePanel x:Name="BeeHiveBackground" IsHitTestVisible="False"/>
+
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -312,14 +363,14 @@
                             </ScrollViewer>
                             <StackPanel Grid.Row="1" Margin="10">
                                 <StackPanel Orientation="Horizontal" x:Name="AttachmentsSummaryPanel" Visibility="Collapsed" Margin="0,0,0,5">
-                                    <Border x:Name="ImageAttachmentIndicator" Background="Red" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
-                                        <TextBlock x:Name="ImageAttachmentCount" Foreground="White" FontWeight="Bold"/>
+                                    <Border x:Name="ImageAttachmentIndicator" Background="{StaticResource ImageAttachmentIndicatorBrush}" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
+                                        <TextBlock x:Name="ImageAttachmentCount" Foreground="{StaticResource TextBrush}" FontWeight="Bold"/>
                                     </Border>
-                                    <Border x:Name="AudioAttachmentIndicator" Background="Green" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
-                                        <TextBlock x:Name="AudioAttachmentCount" Foreground="White" FontWeight="Bold"/>
+                                    <Border x:Name="AudioAttachmentIndicator" Background="{StaticResource AudioAttachmentIndicatorBrush}" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
+                                        <TextBlock x:Name="AudioAttachmentCount" Foreground="{StaticResource TextBrush}" FontWeight="Bold"/>
                                     </Border>
-                                    <Border x:Name="ZipAttachmentIndicator" Background="Purple" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
-                                        <TextBlock x:Name="ZipAttachmentCount" Foreground="White" FontWeight="Bold"/>
+                                    <Border x:Name="ZipAttachmentIndicator" Background="{StaticResource ZipAttachmentIndicatorBrush}" CornerRadius="10" Margin="0,0,5,0" Padding="5" Visibility="Collapsed">
+                                        <TextBlock x:Name="ZipAttachmentCount" Foreground="{StaticResource TextBrush}" FontWeight="Bold"/>
                                     </Border>
                                 </StackPanel>
                                 <Grid>
@@ -329,18 +380,18 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Button x:Name="AttachFileButton" Content="📎" Width="30" Height="30" Margin="0,0,5,0" Click="AttachFileButton_Click"/>
-                                    <TextBox x:Name="MessageTextBox" Grid.Column="1" Height="30" Background="#252526" Foreground="White" BorderBrush="#4C4481" BorderThickness="1" FontSize="14" KeyDown="MessageTextBox_KeyDown"/>
-                                    <Button x:Name="SendButton" Content="Send" Grid.Column="2" Width="60" Height="30" Background="#383838" Foreground="White" BorderBrush="#4C4481" BorderThickness="2" FontSize="14" Click="SendButton_Click" Margin="5,0,0,0"/>
+                                    <TextBox x:Name="MessageTextBox" Grid.Column="1" Height="30" Background="{StaticResource TextBoxBackgroundBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource EnhancedNavigationBorderBrush}" BorderThickness="1" FontSize="14" KeyDown="MessageTextBox_KeyDown"/>
+                                    <Button x:Name="SendButton" Content="Send" Grid.Column="2" Width="60" Height="30" Background="{StaticResource MenuBackgroundBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource EnhancedNavigationBorderBrush}" BorderThickness="2" FontSize="14" Click="SendButton_Click" Margin="5,0,0,0"/>
                                 </Grid>
                             </StackPanel>
                         </Grid>
-                    </Border>
+                    </Grid>
                 </Grid>
             </Grid>
 
             <!-- Bottom Bar Container -->
             <Grid x:Name="BottomBarContainer" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Panel.ZIndex="1"
-            MouseEnter="BottomBar_MouseEnter" MouseLeave="BottomBar_MouseLeave">
+                  MouseEnter="BottomBar_MouseEnter" MouseLeave="BottomBar_MouseLeave">
                 <Grid.Margin>
                     <MultiBinding Converter="{StaticResource BottomBarMarginConverter}">
                         <Binding ElementName="ChatDrawer" Path="Width"/>
@@ -348,14 +399,14 @@
                     </MultiBinding>
                 </Grid.Margin>
                 <!-- BottomBar with layered content -->
-                <Border x:Name="BottomBar" Background="#55b155" CornerRadius="10,0,0,0" Height="100">
+                <Border x:Name="BottomBar" Background="{StaticResource AccentBrush}" CornerRadius="10,0,0,0" Height="100">
                     <Border.RenderTransform>
                         <TranslateTransform x:Name="BottomBarTransform" Y="60"/>
                     </Border.RenderTransform>
                     <Grid>
                         <!-- Layer 0: Audio Thumbnail with rounded corners (using Border and explicit Clip) -->
                         <Border HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="150" CornerRadius="10" ClipToBounds="True" Panel.ZIndex="0">
-                            <Image x:Name="AudioThumbnailImage" Source="defaultAudioImage.png" Stretch="UniformToFill">
+                            <Image x:Name="AudioThumbnailImage" Source="pack://application:,,,/defaultAudioImage.png" Stretch="UniformToFill">
                                 <Image.Clip>
                                     <RectangleGeometry Rect="0,0,150,100" RadiusX="10" RadiusY="10"/>
                                 </Image.Clip>
@@ -379,9 +430,9 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="ElapsedTimeText" Grid.Column="0" VerticalAlignment="Center" Foreground="White" Margin="5,0,0,0" Text="0:00"/>
+                                <TextBlock x:Name="ElapsedTimeText" Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" Margin="5,0,0,0" Text="0:00"/>
                                 <Slider x:Name="MusicProgressSlider" Grid.Column="1" Style="{StaticResource FancySliderStyle}" Minimum="0" Maximum="100" ValueChanged="MusicProgressSlider_ValueChanged" Margin="5" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="RemainingTimeText" Grid.Column="2" VerticalAlignment="Center" Foreground="White" Margin="0,0,5,0" Text="0:00"/>
+                                <TextBlock x:Name="RemainingTimeText" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" Margin="0,0,5,0" Text="0:00"/>
                             </Grid>
                             <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>

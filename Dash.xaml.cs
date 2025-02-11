@@ -1,80 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Data;
 using System.Windows.Threading;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Windows.Media.Effects;
-using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Microsoft.Win32;
+using System.Windows.Media.Imaging;
+using EchoOrbit.Models;
+using EchoOrbit.Helpers;
+using System.Windows.Controls.Primitives;
 
 namespace EchoOrbit
 {
-    public class SliderProgressWidthConverter : IMultiValueConverter
-    {
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (values.Length >= 3 &&
-                values[0] is double value &&
-                values[1] is double maximum &&
-                values[2] is double actualWidth)
-            {
-                if (maximum <= 0)
-                    return 0.0;
-                return (value / maximum) * actualWidth;
-            }
-            return 0.0;
-        }
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
-            throw new NotImplementedException();
-    }
-
-    public class BottomBarMarginConverter : IMultiValueConverter
-    {
-        private const double SlideButtonWidth = 30;
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (values.Length >= 2 &&
-                values[0] is double drawerWidth &&
-                values[1] is double transformX)
-            {
-                double visibleWidth = drawerWidth - transformX - SlideButtonWidth;
-                if (visibleWidth < 0)
-                    visibleWidth = 0;
-                return new Thickness(150, 0, visibleWidth, 0);
-            }
-            return new Thickness(150, 0, 0, 0);
-        }
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
-            throw new NotImplementedException();
-    }
-
-    public class OneSixthMarginConverter : IMultiValueConverter
-    {
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (values != null && values.Length > 0 && values[0] is double totalWidth)
-            {
-                double leftMargin = totalWidth / 6;
-                return new Thickness(leftMargin, 0, 0, 0);
-            }
-            return new Thickness(0);
-        }
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
-            throw new NotImplementedException();
-    }
-
-    public class RelationalAlgebraVisitor : TSqlFragmentVisitor
-    {
-        // Implementation not provided.
-    }
-
     public partial class Dash : Window
     {
         private bool isDrawerOpen = false;
@@ -84,7 +26,7 @@ namespace EchoOrbit
         private DispatcherTimer musicTimer;
         private bool isPlaying = false;
 
-        // For full-screen image viewer navigation.
+        // For full‑screen image viewer navigation.
         private List<ImageSource> viewerImages = new List<ImageSource>();
         private int currentViewerIndex = 0;
 
@@ -93,16 +35,72 @@ namespace EchoOrbit
         private DispatcherTimer musicTitleTimer;
         private int musicTitleOffset = 0;
 
+        // User data for JSON persistence.
+        private UserData userData;
+        private const string UserDataFileName = "userdata.json";
+
         public Dash()
         {
             InitializeComponent();
-            musicTimer = new DispatcherTimer();
-            musicTimer.Interval = TimeSpan.FromSeconds(1);
+
+            musicTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
             musicTimer.Tick += MusicTimer_Tick;
 
-            musicTitleTimer = new DispatcherTimer();
-            musicTitleTimer.Interval = TimeSpan.FromSeconds(0.5);
+            musicTitleTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(0.5)
+            };
             musicTitleTimer.Tick += MusicTitleTimer_Tick;
+
+            this.Loaded += Dash_Loaded;
+            this.Closing += Dash_Closing;
+        }
+
+        private void Dash_Loaded(object sender, RoutedEventArgs e)
+        {
+            LoadUserData();
+            // Optionally update UI with userData.
+        }
+
+        private void Dash_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            SaveUserData();
+        }
+
+        private void LoadUserData()
+        {
+            if (File.Exists(UserDataFileName))
+            {
+                try
+                {
+                    string json = File.ReadAllText(UserDataFileName);
+                    userData = JsonSerializer.Deserialize<UserData>(json);
+                }
+                catch
+                {
+                    userData = new UserData { UserName = "Default", SomeValue = 0 };
+                }
+            }
+            else
+            {
+                userData = new UserData { UserName = "Default", SomeValue = 0 };
+            }
+        }
+
+        private void SaveUserData()
+        {
+            try
+            {
+                string json = JsonSerializer.Serialize(userData);
+                File.WriteAllText(UserDataFileName, json);
+            }
+            catch
+            {
+                // Handle errors if needed.
+            }
         }
 
         private void MusicTimer_Tick(object sender, EventArgs e)
@@ -185,8 +183,10 @@ namespace EchoOrbit
 
         private void FileOpen_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Audio Files|*.mp3;*.wav;*.wma";
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                Filter = "Audio Files|*.mp3;*.wav;*.wma"
+            };
             if (ofd.ShowDialog() == true)
             {
                 string fileName = System.IO.Path.GetFileName(ofd.FileName);
@@ -204,12 +204,12 @@ namespace EchoOrbit
                 }
                 else
                 {
-                    AudioThumbnailImage.Source = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.png"));
+                    AudioThumbnailImage.Source = new BitmapImage(new Uri("defaultAudioImage.png", UriKind.Relative));
                 }
             }
         }
 
-        // Allow dragging from anywhere outside BottomBar.
+        // Allow dragging from anywhere outside the BottomBar.
         private void OuterBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (!IsDescendant(BottomBar, e.OriginalSource as DependencyObject))
@@ -249,23 +249,28 @@ namespace EchoOrbit
 
         private void AttachFileButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp|Audio Files|*.mp3;*.wav;*.wma|Zip Files|*.zip";
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                Multiselect = true,
+                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp|Audio Files|*.mp3;*.wav;*.wma|Zip Files|*.zip"
+            };
             if (ofd.ShowDialog() == true)
             {
-                string selectedFile = ofd.FileName;
-                string ext = System.IO.Path.GetExtension(selectedFile).ToLower();
-                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp")
+                foreach (string selectedFile in ofd.FileNames)
                 {
-                    imageAttachments.Add(selectedFile);
-                }
-                else if (ext == ".mp3" || ext == ".wav" || ext == ".wma")
-                {
-                    audioAttachments.Add(selectedFile);
-                }
-                else if (ext == ".zip")
-                {
-                    zipAttachments.Add(selectedFile);
+                    string ext = System.IO.Path.GetExtension(selectedFile).ToLower();
+                    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp")
+                    {
+                        imageAttachments.Add(selectedFile);
+                    }
+                    else if (ext == ".mp3" || ext == ".wav" || ext == ".wma")
+                    {
+                        audioAttachments.Add(selectedFile);
+                    }
+                    else if (ext == ".zip")
+                    {
+                        zipAttachments.Add(selectedFile);
+                    }
                 }
                 UpdateAttachmentsUI();
             }
@@ -273,33 +278,15 @@ namespace EchoOrbit
 
         private void UpdateAttachmentsUI()
         {
-            if (imageAttachments.Count > 0)
-            {
-                ImageAttachmentIndicator.Visibility = Visibility.Visible;
-                ImageAttachmentCount.Text = imageAttachments.Count.ToString();
-            }
-            else
-            {
-                ImageAttachmentIndicator.Visibility = Visibility.Collapsed;
-            }
-            if (audioAttachments.Count > 0)
-            {
-                AudioAttachmentIndicator.Visibility = Visibility.Visible;
-                AudioAttachmentCount.Text = audioAttachments.Count.ToString();
-            }
-            else
-            {
-                AudioAttachmentIndicator.Visibility = Visibility.Collapsed;
-            }
-            if (zipAttachments.Count > 0)
-            {
-                ZipAttachmentIndicator.Visibility = Visibility.Visible;
-                ZipAttachmentCount.Text = zipAttachments.Count.ToString();
-            }
-            else
-            {
-                ZipAttachmentIndicator.Visibility = Visibility.Collapsed;
-            }
+            ImageAttachmentIndicator.Visibility = (imageAttachments.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
+            ImageAttachmentCount.Text = imageAttachments.Count.ToString();
+
+            AudioAttachmentIndicator.Visibility = (audioAttachments.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
+            AudioAttachmentCount.Text = audioAttachments.Count.ToString();
+
+            ZipAttachmentIndicator.Visibility = (zipAttachments.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
+            ZipAttachmentCount.Text = zipAttachments.Count.ToString();
+
             AttachmentsSummaryPanel.Visibility = (imageAttachments.Count > 0 || audioAttachments.Count > 0 || zipAttachments.Count > 0)
                 ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -309,7 +296,7 @@ namespace EchoOrbit
             string messageText = MessageTextBox.Text;
             StackPanel messageOuterPanel = new StackPanel { Margin = new Thickness(5) };
 
-            // Audio attachments in chat drawer (static text)
+            // Audio attachments.
             if (audioAttachments.Count > 0)
             {
                 StackPanel audioOuterPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(5) };
@@ -335,7 +322,7 @@ namespace EchoOrbit
                         }
                         else
                         {
-                            AudioThumbnailImage.Source = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.png"));
+                            AudioThumbnailImage.Source = new BitmapImage(new Uri("defaultAudioImage.png", UriKind.Relative));
                         }
                     };
                     TextBlock audioName = new TextBlock
@@ -351,6 +338,8 @@ namespace EchoOrbit
                 }
                 messageOuterPanel.Children.Add(audioOuterPanel);
             }
+
+            // Zip attachments.
             if (zipAttachments.Count > 0)
             {
                 StackPanel zipOuterPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(5) };
@@ -375,60 +364,101 @@ namespace EchoOrbit
                 }
                 messageOuterPanel.Children.Add(zipOuterPanel);
             }
-            if (!string.IsNullOrWhiteSpace(messageText) || imageAttachments.Count > 0)
+
+            // Image attachments.
+            if (imageAttachments.Count > 0)
             {
-                Border messageBubble = new Border { Background = Brushes.DarkGray, Margin = new Thickness(5), Padding = new Thickness(5) };
-                StackPanel innerStack = new StackPanel();
-                if (imageAttachments.Count > 0)
+                int picturesPerGroup = 8;
+                int groupCount = (int)Math.Ceiling((double)imageAttachments.Count / picturesPerGroup);
+                for (int group = 0; group < groupCount; group++)
                 {
-                    WrapPanel imagesPanel = new WrapPanel { Margin = new Thickness(5) };
-                    foreach (var img in imageAttachments)
+                    int startIndex = group * picturesPerGroup;
+                    int count = Math.Min(picturesPerGroup, imageAttachments.Count - startIndex);
+
+                    Border imageBubble = new Border
                     {
-                        Image imageControl = new Image { Width = 100, Height = 100, Margin = new Thickness(5) };
-                        if (img is string filePath)
+                        Background = Brushes.DarkGray,
+                        Margin = new Thickness(5),
+                        Padding = new Thickness(0),
+                        CornerRadius = new CornerRadius(10)
+                    };
+
+                    UniformGrid grid = new UniformGrid
+                    {
+                        Columns = (count <= 4) ? count : 4,
+                        Rows = (int)Math.Ceiling((double)count / ((count <= 4) ? count : 4)),
+                        Margin = new Thickness(0)
+                    };
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        var imgObj = imageAttachments[startIndex + i];
+                        Image imageControl = new Image
+                        {
+                            Stretch = Stretch.UniformToFill,
+                            Cursor = Cursors.Hand,
+                            Margin = new Thickness(0)
+                        };
+
+                        if (imgObj is string filePath)
                         {
                             try { imageControl.Source = new BitmapImage(new Uri(filePath)); } catch { }
                         }
-                        else if (img is BitmapSource bmp)
+                        else if (imgObj is BitmapSource bmp)
                         {
                             imageControl.Source = bmp;
                         }
-                        imageControl.Cursor = Cursors.Hand;
+
                         imageControl.MouseLeftButtonUp += (s, args) =>
                         {
-                            Image clickedImage = s as Image;
-                            WrapPanel panel = imagesPanel;
                             List<ImageSource> sources = new List<ImageSource>();
-                            int selectedIndex = 0;
-                            for (int i = 0; i < panel.Children.Count; i++)
+                            foreach (var child in grid.Children)
                             {
-                                if (panel.Children[i] is Image imgChild)
+                                if (child is Image img && img.Source != null)
+                                    sources.Add(img.Source);
+                            }
+                            int selectedIndex = 0;
+                            for (int j = 0; j < grid.Children.Count; j++)
+                            {
+                                if (grid.Children[j] is Image img && img == s as Image)
                                 {
-                                    sources.Add(imgChild.Source);
-                                    if (imgChild == clickedImage)
-                                        selectedIndex = i;
+                                    selectedIndex = j;
+                                    break;
                                 }
                             }
-                            ShowEnlargedImage(sources, selectedIndex);
+                            // Use the helper to show full‑screen image viewer.
+                            FullScreenImageViewer.Show(sources, selectedIndex);
                         };
-                        imagesPanel.Children.Add(imageControl);
+
+                        grid.Children.Add(imageControl);
                     }
-                    innerStack.Children.Add(imagesPanel);
+
+                    imageBubble.Child = grid;
+                    messageOuterPanel.Children.Add(imageBubble);
                 }
-                if (!string.IsNullOrWhiteSpace(messageText))
+            }
+
+            // Text message.
+            if (!string.IsNullOrWhiteSpace(messageText))
+            {
+                Border messageBubble = new Border
                 {
-                    TextBlock textBlock = new TextBlock
-                    {
-                        Text = messageText,
-                        Foreground = Brushes.White,
-                        Margin = new Thickness(5),
-                        TextWrapping = TextWrapping.Wrap
-                    };
-                    innerStack.Children.Add(textBlock);
-                }
-                messageBubble.Child = innerStack;
+                    Background = Brushes.White,
+                    Margin = new Thickness(5),
+                    Padding = new Thickness(5),
+                    CornerRadius = new CornerRadius(5)
+                };
+                TextBlock textBlock = new TextBlock
+                {
+                    Text = messageText,
+                    Foreground = Brushes.Black,
+                    Margin = new Thickness(5),
+                    TextWrapping = TextWrapping.Wrap
+                };
+                messageBubble.Child = textBlock;
                 messageOuterPanel.Children.Add(messageBubble);
             }
+
             if (messageOuterPanel.Children.Count > 0)
             {
                 MessagesContainer.Children.Add(messageOuterPanel);
@@ -486,119 +516,7 @@ namespace EchoOrbit
             }
         }
 
-        // Full-screen image viewer with centered navigation buttons.
-        private void ShowEnlargedImage(List<ImageSource> images, int selectedIndex)
-        {
-            if (images == null || images.Count == 0)
-                return;
-
-            viewerImages = images;
-            currentViewerIndex = selectedIndex;
-
-            Window fullScreenViewer = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                WindowState = WindowState.Maximized,
-                Topmost = true,
-                ShowInTaskbar = false
-            };
-
-            Grid rootGrid = new Grid();
-
-            Rectangle backgroundRect = new Rectangle
-            {
-                Fill = new SolidColorBrush(Color.FromArgb(200, 0, 0, 0))
-            };
-            backgroundRect.Effect = new BlurEffect { Radius = 10 };
-            rootGrid.Children.Add(backgroundRect);
-
-            Border imageContainer = new Border
-            {
-                Background = Brushes.Transparent,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            Image fullScreenImage = new Image
-            {
-                Source = viewerImages[currentViewerIndex],
-                Stretch = Stretch.Uniform,
-                MaxWidth = SystemParameters.PrimaryScreenWidth,
-                MaxHeight = SystemParameters.PrimaryScreenHeight
-            };
-            imageContainer.Child = fullScreenImage;
-            rootGrid.Children.Add(imageContainer);
-
-            Grid navGrid = new Grid
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch
-            };
-            navGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            navGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            Button leftButton = new Button
-            {
-                Content = "❮",
-                Width = 50,
-                Height = 50,
-                Background = Brushes.Transparent,
-                Foreground = Brushes.White,
-                BorderThickness = new Thickness(0),
-                Cursor = Cursors.Hand,
-                FontSize = 30,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(20, 0, 0, 0)
-            };
-            Grid.SetColumn(leftButton, 0);
-            navGrid.Children.Add(leftButton);
-
-            Button rightButton = new Button
-            {
-                Content = "❯",
-                Width = 50,
-                Height = 50,
-                Background = Brushes.Transparent,
-                Foreground = Brushes.White,
-                BorderThickness = new Thickness(0),
-                Cursor = Cursors.Hand,
-                FontSize = 30,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 20, 0)
-            };
-            Grid.SetColumn(rightButton, 1);
-            navGrid.Children.Add(rightButton);
-
-            rootGrid.Children.Add(navGrid);
-
-            rootGrid.MouseLeftButtonDown += (s, e) =>
-            {
-                if (e.OriginalSource == backgroundRect)
-                {
-                    fullScreenViewer.Close();
-                }
-            };
-
-            leftButton.Click += (s, e) =>
-            {
-                currentViewerIndex = (currentViewerIndex - 1 + viewerImages.Count) % viewerImages.Count;
-                fullScreenImage.Source = viewerImages[currentViewerIndex];
-            };
-            rightButton.Click += (s, e) =>
-            {
-                currentViewerIndex = (currentViewerIndex + 1) % viewerImages.Count;
-                fullScreenImage.Source = viewerImages[currentViewerIndex];
-            };
-
-            fullScreenViewer.Content = rootGrid;
-            fullScreenViewer.ShowDialog();
-        }
-
-        // Kinetic ticker for MusicTitle: shows a fixed 17-character substring that advances one character at a time.
+        // Kinetic ticker for MusicTitle.
         private void ApplyKineticAnimationToMusicTitle()
         {
             if (string.IsNullOrEmpty(fullMusicTitle))
@@ -606,7 +524,6 @@ namespace EchoOrbit
                 musicTitleTimer.Stop();
                 return;
             }
-            // If the full title is 17 or fewer characters, show it and stop the ticker.
             if (fullMusicTitle.Length <= 17)
             {
                 musicTitleTimer.Stop();
@@ -626,7 +543,6 @@ namespace EchoOrbit
                 return;
             }
             int len = fullMusicTitle.Length;
-            // If there is enough room, take substring of 17 characters; if not, wrap around.
             if (musicTitleOffset + 17 <= len)
             {
                 MusicTitle.Text = fullMusicTitle.Substring(musicTitleOffset, 17);
