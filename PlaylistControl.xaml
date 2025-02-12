@@ -61,7 +61,7 @@
             </Setter>
         </Style>
 
-        <!-- Style for the Play button overlay that appears on hover -->
+        <!-- Style for the Play button overlay (appears on hover) -->
         <Style x:Key="PlayButtonHoverStyle" TargetType="Button">
             <Setter Property="Opacity" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -113,16 +113,10 @@
                       MouseLeftButtonDown="PlaylistItem_MouseLeftButtonDown">
                                 <Grid>
                                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
-                                    <!-- Overlay the playlist name -->
-                                    <TextBlock Text="{Binding Name}" 
-                             VerticalAlignment="Bottom" 
-                             Background="#AA000000" 
-                             Foreground="White"
-                             FontSize="12" 
-                             TextTrimming="CharacterEllipsis" 
-                             ToolTip="{Binding Name}" 
-                             TextAlignment="Center" 
-                             Padding="2"/>
+                                    <!-- Overlay playlist name at bottom -->
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Bottom" Background="#AA000000" 
+                             Foreground="White" FontSize="12" TextTrimming="CharacterEllipsis" 
+                             ToolTip="{Binding Name}" TextAlignment="Center" Padding="2"/>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -152,7 +146,7 @@
                         <Border Width="120" Height="120" Margin="5" CornerRadius="10" Background="Black">
                             <Grid>
                                 <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
-                                <!-- Overlay Play button on hover -->
+                                <!-- Overlay Play button (appears on hover) -->
                                 <Button Content="▶" Tag="{Binding FilePath}" 
                         Style="{StaticResource PlayButtonHoverStyle}"
                         HorizontalAlignment="Center" VerticalAlignment="Center"

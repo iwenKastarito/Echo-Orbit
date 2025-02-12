@@ -1,0 +1,42 @@
+{
+  "Playlists": [
+    {
+      "Name": "Favorites",
+      "Songs": [
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\01.-Milfanito.mp3",
+          "Title": "01.-Milfanito.mp3"
+        },
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\01.The Rumbling (TV Size).mp3",
+          "Title": "01.The Rumbling (TV Size).mp3"
+        },
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\03 (mp3cut.net).mp3",
+          "Title": "03 (mp3cut.net).mp3"
+        },
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\03. YouSeeBIGGIRL／T：T.mp3",
+          "Title": "03. YouSeeBIGGIRL／T：T.mp3"
+        },
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\08.-Isabellas-Lullaby.mp3",
+          "Title": "08.-Isabellas-Lullaby.mp3"
+        },
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\10. SymphonicSuite[AoT]Part2-1st_attack ON titan _WMId_.mp3",
+          "Title": "10. SymphonicSuite[AoT]Part2-1st_attack ON titan _WMId_.mp3"
+        }
+      ]
+    },
+    {
+      "Name": "Avocado",
+      "Songs": [
+        {
+          "FilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\bin\\Debug\\net8.0-windows10.0.22621.0\\UserMusic\\Alan_Wake_2_Sankarin_Tango_English_Finnish_Lyrics_Video_B4ukVA7y.mp3",
+          "Title": "Alan_Wake_2_Sankarin_Tango_English_Finnish_Lyrics_Video_B4ukVA7y.mp3"
+        }
+      ]
+    }
+  ]
+}

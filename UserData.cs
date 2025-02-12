@@ -1,9 +1,21 @@
-﻿namespace EchoOrbit.Models
+﻿using System.Collections.Generic;
+
+namespace EchoOrbit
 {
-    // Simple class to hold user data (expand properties as needed)
+    public class StoredSong
+    {
+        public string FilePath { get; set; }
+        public string Title { get; set; }
+    }
+
+    public class StoredPlaylist
+    {
+        public string Name { get; set; }
+        public List<StoredSong> Songs { get; set; } = new List<StoredSong>();
+    }
+
     public class UserData
     {
-        public string UserName { get; set; }
-        public int SomeValue { get; set; }
+        public List<StoredPlaylist> Playlists { get; set; } = new List<StoredPlaylist>();
     }
 }

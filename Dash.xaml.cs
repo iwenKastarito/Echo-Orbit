@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Media.Imaging;
-using EchoOrbit.Models;
+//using EchoOrbit.Models;
 using EchoOrbit.Helpers;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -280,6 +280,7 @@ namespace EchoOrbit
                 MessageBox.Show("No playlist available for next track.");
             }
         }
+
 
 
 

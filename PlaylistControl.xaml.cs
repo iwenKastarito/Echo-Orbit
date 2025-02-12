@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using System.Windows.Threading;
-using TagLib;  // Ensure TagLib# is installed via NuGet
+using TagLib;
 using Microsoft.VisualBasic; // For InputBox
 
 namespace EchoOrbit.Controls
@@ -21,23 +21,44 @@ namespace EchoOrbit.Controls
         // Event raised when a song is selected to play.
         public event Action<string> SongSelected;
 
+        private UserData userData;
+        private string userMusicFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UserMusic");
+
         public PlaylistControl()
         {
             InitializeComponent();
-            // For demo, add a default playlist.
-            var defaultPlaylist = new Playlist
+            // Ensure the user music folder exists.
+            if (!Directory.Exists(userMusicFolder))
+                Directory.CreateDirectory(userMusicFolder);
+
+            // Load stored user data.
+            userData = UserDataManager.LoadUserData();
+            // If no playlists, create a default one.
+            if (userData.Playlists.Count == 0)
             {
-                Name = "Favorites",
-                Thumbnail = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute))
-            };
-            defaultPlaylist.Songs.Add(new Song
+                var defaultStored = new StoredPlaylist { Name = "Favorites" };
+                userData.Playlists.Add(defaultStored);
+                UserDataManager.SaveUserData(userData);
+            }
+            // Populate ExistingPlaylists from stored data.
+            foreach (var sp in userData.Playlists)
             {
-                FilePath = "dummy.mp3",
-                Title = "Sample Song",
-                Thumbnail = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute))
-            });
-            ExistingPlaylists.Add(defaultPlaylist);
-            CurrentPlaylist = defaultPlaylist.Songs;
+                var pl = new Playlist
+                {
+                    Name = sp.Name,
+                    Thumbnail = new BitmapImage(new Uri("pack://application:,,,/defaultAudioImage.jpg", UriKind.Absolute))
+                };
+
+                foreach (var ss in sp.Songs)
+                {
+                    pl.Songs.Add(new Song { FilePath = ss.FilePath, Title = ss.Title, Thumbnail = GetAlbumArt(ss.FilePath) });
+                }
+                ExistingPlaylists.Add(pl);
+            }
+
+            // Set current playlist to first one.
+            if (ExistingPlaylists.Count > 0)
+                CurrentPlaylist = ExistingPlaylists[0].Songs;
             SongsListBox.ItemsSource = CurrentPlaylist;
             DataContext = this;
 
@@ -59,7 +80,6 @@ namespace EchoOrbit.Controls
                 };
         }
 
-        // Helper method to find a visual child.
         private static T FindVisualChild<T>(DependencyObject depObj) where T : DependencyObject
         {
             if (depObj == null) return null;
@@ -77,41 +97,47 @@ namespace EchoOrbit.Controls
 
         private void NewPlaylistButton_Click(object sender, RoutedEventArgs e)
         {
-            // Ask for a playlist name.
             string name = Interaction.InputBox("Enter playlist name:", "New Playlist", "New Playlist");
             if (string.IsNullOrWhiteSpace(name))
                 name = "New Playlist";
 
+            var newStored = new StoredPlaylist { Name = name };
+            userData.Playlists.Add(newStored);
+            UserDataManager.SaveUserData(userData);
+
             var newPlaylist = new Playlist
             {
                 Name = name,
-                Thumbnail = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute))
+                Thumbnail = new BitmapImage(new Uri("pack://application:,,,/defaultAudioImage.jpg", UriKind.Absolute))
             };
             ExistingPlaylists.Add(newPlaylist);
             CurrentPlaylist = newPlaylist.Songs;
             SongsListBox.ItemsSource = CurrentPlaylist;
-            // Instead of a MessageBox, the new playlist name is now shown on the thumbnail.
         }
 
         private void AddSongButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog dlg = new OpenFileDialog
-            {
-                Filter = "Audio Files|*.mp3;*.wav;*.wma",
-                Multiselect = true
-            };
+            OpenFileDialog dlg = new OpenFileDialog { Filter = "Audio Files|*.mp3;*.wav;*.wma", Multiselect = true };
             if (dlg.ShowDialog() == true)
             {
+                // Get stored playlist corresponding to the current playlist.
+                var storedPlaylist = GetStoredPlaylist(CurrentPlaylist);
                 foreach (string file in dlg.FileNames)
                 {
+                    // Copy the file to the user music folder.
+                    string destFile = Path.Combine(userMusicFolder, Path.GetFileName(file));
+                    try { System.IO.File.Copy(file, destFile, true); } catch { }
+
                     Song song = new Song
                     {
-                        FilePath = file,
-                        Title = System.IO.Path.GetFileName(file),
-                        Thumbnail = GetAlbumArt(file)
+                        FilePath = destFile,
+                        Title = Path.GetFileName(destFile),
+                        Thumbnail = GetAlbumArt(destFile)
                     };
                     CurrentPlaylist.Add(song);
+                    storedPlaylist.Songs.Add(new StoredSong { FilePath = destFile, Title = song.Title });
                 }
+                UserDataManager.SaveUserData(userData);
             }
         }
 
@@ -120,6 +146,11 @@ namespace EchoOrbit.Controls
             if (SongsListBox.SelectedItem is Song song)
             {
                 CurrentPlaylist.Remove(song);
+                var storedPlaylist = GetStoredPlaylist(CurrentPlaylist);
+                var storedSong = storedPlaylist.Songs.Find(s => s.FilePath == song.FilePath);
+                if (storedSong != null)
+                    storedPlaylist.Songs.Remove(storedSong);
+                UserDataManager.SaveUserData(userData);
             }
         }
 
@@ -168,7 +199,7 @@ namespace EchoOrbit.Controls
                 }
                 catch { }
             }
-            return new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute));
+            return new BitmapImage(new Uri("pack://application:,,,/defaultAudioImage.jpg", UriKind.Absolute));
         }
 
         private void PlaylistItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -180,10 +211,21 @@ namespace EchoOrbit.Controls
             }
         }
 
-        // Prevent auto-scrolling when an item is selected.
         private void SongsListBox_RequestBringIntoView(object sender, RequestBringIntoViewEventArgs e)
         {
             e.Handled = true;
+        }
+
+        // Helper: find the corresponding StoredPlaylist for the current runtime playlist.
+        private StoredPlaylist GetStoredPlaylist(ObservableCollection<Song> runtimeSongs)
+        {
+            // For simplicity, we match by count. A more robust solution would match by a unique ID.
+            foreach (var sp in userData.Playlists)
+            {
+                if (sp.Songs.Count == runtimeSongs.Count)
+                    return sp;
+            }
+            return userData.Playlists[0];
         }
     }
 

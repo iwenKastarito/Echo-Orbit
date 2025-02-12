@@ -11,12 +11,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="defaultAudioImage.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="EchoOrbitICON.ico" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="170.23.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="defaultAudioImage.jpg" />
   </ItemGroup>
 
 </Project>

@@ -1,31 +1,34 @@
-﻿using EchoOrbit.Models;
-using System;
+﻿using System;
 using System.IO;
-using System.Text.Json;
+using Newtonsoft.Json;
+using System.Windows;
+using System.Xml;
+using Newtonsoft.Json;
+
 
 namespace EchoOrbit
 {
-    public class UserDataManager
+    public static class UserDataManager
     {
-        private const string UserDataFileName = "userdata.json";
+        private static string dataFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "userdata.json");
 
         public static UserData LoadUserData()
         {
-            if (File.Exists(UserDataFileName))
+            if (File.Exists(dataFile))
             {
                 try
                 {
-                    string json = File.ReadAllText(UserDataFileName);
-                    return JsonSerializer.Deserialize<UserData>(json);
+                    string json = File.ReadAllText(dataFile);
+                    return JsonConvert.DeserializeObject<UserData>(json) ?? new UserData();
                 }
                 catch
                 {
-                    return new UserData { UserName = "Default", SomeValue = 0 };
+                    return new UserData();
                 }
             }
             else
             {
-                return new UserData { UserName = "Default", SomeValue = 0 };
+                return new UserData();
             }
         }
 
@@ -33,12 +36,13 @@ namespace EchoOrbit
         {
             try
             {
-                string json = JsonSerializer.Serialize(data);
-                File.WriteAllText(UserDataFileName, json);
+                string json = JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
+
+                File.WriteAllText(dataFile, json);
             }
-            catch
+            catch (Exception ex)
             {
-                // Handle errors if needed.
+                MessageBox.Show("Error saving user data: " + ex.Message);
             }
         }
     }
