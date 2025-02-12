@@ -210,12 +210,15 @@ namespace EchoOrbit
                 string item = btn.Content.ToString();
                 if (item == "Item2")
                 {
-                    // When "Item2" is clicked, display the PlaylistControl.
-                    MainContent.Content = new EchoOrbit.Controls.PlaylistControl();
+                    var playlistControl = new EchoOrbit.Controls.PlaylistControl();
+                    playlistControl.SongSelected += (filePath) =>
+                    {
+                        musicController.PlayMusicFromFile(filePath);
+                    };
+                    MainContent.Content = playlistControl;
                 }
                 else
                 {
-                    // Default content for other items.
                     MainContent.Content = new TextBlock
                     {
                         Text = "You selected " + item,
@@ -227,6 +230,17 @@ namespace EchoOrbit
                 }
             }
         }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
