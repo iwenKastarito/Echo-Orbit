@@ -259,13 +259,31 @@ namespace EchoOrbit
         // Stub event handlers for audio control buttons.
         private void PrevButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Previous track clicked (not implemented).");
+            if (musicController.CurrentPlaylist != null && musicController.CurrentPlaylist.Count > 0)
+            {
+                musicController.PrevSong();
+            }
+            else
+            {
+                MessageBox.Show("No playlist available for previous track.");
+            }
         }
 
         private void NextButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Next track clicked (not implemented).");
+            if (musicController.CurrentPlaylist != null && musicController.CurrentPlaylist.Count > 0)
+            {
+                musicController.NextSong();
+            }
+            else
+            {
+                MessageBox.Show("No playlist available for next track.");
+            }
         }
+
+
+
+
 
         private void FutureButton_Click(object sender, RoutedEventArgs e)
         {

@@ -7,7 +7,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using System.Windows.Threading;
 using TagLib;  // Ensure TagLib# is installed via NuGet
+using Microsoft.VisualBasic; // For InputBox
 
 namespace EchoOrbit.Controls
 {
@@ -22,7 +24,6 @@ namespace EchoOrbit.Controls
         public PlaylistControl()
         {
             InitializeComponent();
-
             // For demo, add a default playlist.
             var defaultPlaylist = new Playlist
             {
@@ -58,7 +59,7 @@ namespace EchoOrbit.Controls
                 };
         }
 
-        // Generic helper to find a visual child.
+        // Helper method to find a visual child.
         private static T FindVisualChild<T>(DependencyObject depObj) where T : DependencyObject
         {
             if (depObj == null) return null;
@@ -76,15 +77,20 @@ namespace EchoOrbit.Controls
 
         private void NewPlaylistButton_Click(object sender, RoutedEventArgs e)
         {
+            // Ask for a playlist name.
+            string name = Interaction.InputBox("Enter playlist name:", "New Playlist", "New Playlist");
+            if (string.IsNullOrWhiteSpace(name))
+                name = "New Playlist";
+
             var newPlaylist = new Playlist
             {
-                Name = "New Playlist",
+                Name = name,
                 Thumbnail = new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute))
             };
             ExistingPlaylists.Add(newPlaylist);
             CurrentPlaylist = newPlaylist.Songs;
             SongsListBox.ItemsSource = CurrentPlaylist;
-            MessageBox.Show("New playlist created.");
+            // Instead of a MessageBox, the new playlist name is now shown on the thumbnail.
         }
 
         private void AddSongButton_Click(object sender, RoutedEventArgs e)

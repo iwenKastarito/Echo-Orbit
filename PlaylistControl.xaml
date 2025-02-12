@@ -30,7 +30,7 @@
             </Setter>
         </Style>
 
-        <!-- Custom horizontal ScrollBar style used for both the rotating bar and SongsListBox -->
+        <!-- Custom horizontal ScrollBar style (used for both the rotating bar and SongsListBox) -->
         <Style x:Key="CustomHorizontalScrollBarStyle" TargetType="ScrollBar">
             <Setter Property="Height" Value="8"/>
             <Setter Property="Orientation" Value="Horizontal"/>
@@ -43,18 +43,10 @@
                                     <RepeatButton Command="ScrollBar.LineLeftCommand" Background="Transparent" BorderThickness="0"/>
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
-                                    <!-- Wrap Thumb in a Border for rounded corners -->
                                     <Thumb Height="8" Margin="2">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border CornerRadius="4">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                            <GradientStop Color="#FFD6D6D6" Offset="0"/>
-                                                            <GradientStop Color="#FFA6A6A6" Offset="1"/>
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                </Border>
+                                                <Border Background="LightGray" CornerRadius="4"/>
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>
@@ -69,7 +61,7 @@
             </Setter>
         </Style>
 
-        <!-- Style for the Play button overlay -->
+        <!-- Style for the Play button overlay that appears on hover -->
         <Style x:Key="PlayButtonHoverStyle" TargetType="Button">
             <Setter Property="Opacity" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -119,7 +111,19 @@
                         <DataTemplate>
                             <Border Width="100" Height="100" Margin="5" CornerRadius="10" Background="Black"
                       MouseLeftButtonDown="PlaylistItem_MouseLeftButtonDown">
-                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                                <Grid>
+                                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                                    <!-- Overlay the playlist name -->
+                                    <TextBlock Text="{Binding Name}" 
+                             VerticalAlignment="Bottom" 
+                             Background="#AA000000" 
+                             Foreground="White"
+                             FontSize="12" 
+                             TextTrimming="CharacterEllipsis" 
+                             ToolTip="{Binding Name}" 
+                             TextAlignment="Center" 
+                             Padding="2"/>
+                                </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -127,7 +131,7 @@
             </ScrollViewer>
         </Border>
 
-        <!-- Playlist items: horizontally scrollable ListBox (vertical scrollbar disabled) -->
+        <!-- Playlist items: horizontally scrollable ListBox (vertical scrolling disabled) -->
         <ScrollViewer Grid.Row="2" Margin="10,10,10,40" 
                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                   ScrollViewer.PanningMode="HorizontalOnly">
@@ -148,17 +152,21 @@
                         <Border Width="120" Height="120" Margin="5" CornerRadius="10" Background="Black">
                             <Grid>
                                 <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
-                                <!-- Play button overlay that appears on hover -->
+                                <!-- Overlay Play button on hover -->
                                 <Button Content="▶" Tag="{Binding FilePath}" 
                         Style="{StaticResource PlayButtonHoverStyle}"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
                         Click="SongPlayButton_Click"/>
-                                <!-- Song title displayed at the bottom, with truncated text and a ToolTip for full name -->
+                                <!-- Song title overlay at bottom -->
                                 <TextBlock Text="{Binding Title}" 
+                           VerticalAlignment="Bottom" 
+                           Background="#AA000000" 
+                           Foreground="White"
+                           FontSize="12"
                            TextTrimming="CharacterEllipsis"
-                           Foreground="White" Background="#AA000000"
-                           VerticalAlignment="Bottom" Padding="3"
-                           ToolTip="{Binding Title}"/>
+                           ToolTip="{Binding Title}"
+                           TextAlignment="Center" 
+                           Padding="2"/>
                             </Grid>
                         </Border>
                     </DataTemplate>
