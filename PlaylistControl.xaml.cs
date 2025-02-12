@@ -11,6 +11,9 @@ using System.Windows.Threading;
 using TagLib;
 using Microsoft.VisualBasic; // For InputBox
 
+using EchoOrbit.Models;
+
+
 namespace EchoOrbit.Controls
 {
     public partial class PlaylistControl : UserControl
@@ -27,42 +30,35 @@ namespace EchoOrbit.Controls
         public PlaylistControl()
         {
             InitializeComponent();
-            // Ensure the user music folder exists.
             if (!Directory.Exists(userMusicFolder))
                 Directory.CreateDirectory(userMusicFolder);
 
-            // Load stored user data.
             userData = UserDataManager.LoadUserData();
-            // If no playlists, create a default one.
             if (userData.Playlists.Count == 0)
             {
                 var defaultStored = new StoredPlaylist { Name = "Favorites" };
                 userData.Playlists.Add(defaultStored);
                 UserDataManager.SaveUserData(userData);
             }
-            // Populate ExistingPlaylists from stored data.
             foreach (var sp in userData.Playlists)
             {
                 var pl = new Playlist
                 {
                     Name = sp.Name,
+                    // Make sure the resource name and extension match exactly.
                     Thumbnail = new BitmapImage(new Uri("pack://application:,,,/defaultAudioImage.jpg", UriKind.Absolute))
                 };
-
                 foreach (var ss in sp.Songs)
                 {
                     pl.Songs.Add(new Song { FilePath = ss.FilePath, Title = ss.Title, Thumbnail = GetAlbumArt(ss.FilePath) });
                 }
                 ExistingPlaylists.Add(pl);
             }
-
-            // Set current playlist to first one.
             if (ExistingPlaylists.Count > 0)
                 CurrentPlaylist = ExistingPlaylists[0].Songs;
             SongsListBox.ItemsSource = CurrentPlaylist;
             DataContext = this;
 
-            // Attach mouse wheel event handlers for horizontal scrolling.
             var playlistsSV = FindVisualChild<ScrollViewer>(PlaylistsItemsControl);
             if (playlistsSV != null)
                 playlistsSV.PreviewMouseWheel += (s, e) =>
@@ -120,14 +116,11 @@ namespace EchoOrbit.Controls
             OpenFileDialog dlg = new OpenFileDialog { Filter = "Audio Files|*.mp3;*.wav;*.wma", Multiselect = true };
             if (dlg.ShowDialog() == true)
             {
-                // Get stored playlist corresponding to the current playlist.
                 var storedPlaylist = GetStoredPlaylist(CurrentPlaylist);
                 foreach (string file in dlg.FileNames)
                 {
-                    // Copy the file to the user music folder.
                     string destFile = Path.Combine(userMusicFolder, Path.GetFileName(file));
                     try { System.IO.File.Copy(file, destFile, true); } catch { }
-
                     Song song = new Song
                     {
                         FilePath = destFile,
@@ -191,8 +184,10 @@ namespace EchoOrbit.Controls
                             BitmapImage bmp = new BitmapImage();
                             bmp.BeginInit();
                             bmp.CacheOption = BitmapCacheOption.OnLoad;
+                            bmp.DecodePixelWidth = 120; // Load a scaled version.
                             bmp.StreamSource = ms;
                             bmp.EndInit();
+                            bmp.Freeze();
                             return bmp;
                         }
                     }
@@ -216,10 +211,8 @@ namespace EchoOrbit.Controls
             e.Handled = true;
         }
 
-        // Helper: find the corresponding StoredPlaylist for the current runtime playlist.
         private StoredPlaylist GetStoredPlaylist(ObservableCollection<Song> runtimeSongs)
         {
-            // For simplicity, we match by count. A more robust solution would match by a unique ID.
             foreach (var sp in userData.Playlists)
             {
                 if (sp.Songs.Count == runtimeSongs.Count)
@@ -229,17 +222,17 @@ namespace EchoOrbit.Controls
         }
     }
 
-    public class Song
-    {
-        public string FilePath { get; set; }
-        public string Title { get; set; }
-        public ImageSource Thumbnail { get; set; }
-    }
+    //public class Song
+    //{
+    //    public string FilePath { get; set; }
+    //    public string Title { get; set; }
+    //    public ImageSource Thumbnail { get; set; }
+    //}
 
-    public class Playlist
-    {
-        public string Name { get; set; }
-        public ImageSource Thumbnail { get; set; }
-        public ObservableCollection<Song> Songs { get; set; } = new ObservableCollection<Song>();
-    }
+    //public class Playlist
+    //{
+    //    public string Name { get; set; }
+    //    public ImageSource Thumbnail { get; set; }
+    //    public ObservableCollection<Song> Songs { get; set; } = new ObservableCollection<Song>();
+    //}
 }

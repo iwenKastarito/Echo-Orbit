@@ -10,6 +10,9 @@ using Microsoft.Win32;
 using System.Windows.Threading;
 using TagLib;  // Requires TagLib# NuGet package
 
+using EchoOrbit.Models;
+
+
 namespace EchoOrbit
 {
     public class MusicController
@@ -362,10 +365,10 @@ namespace EchoOrbit
         }
     }
 
-    public class Song
-    {
-        public string FilePath { get; set; }
-        public string Title { get; set; }
-        public ImageSource Thumbnail { get; set; }
-    }
+    //public class Song
+    //{
+    //    public string FilePath { get; set; }
+    //    public string Title { get; set; }
+    //    public ImageSource Thumbnail { get; set; }
+    //}
 }

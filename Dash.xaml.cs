@@ -213,6 +213,18 @@ namespace EchoOrbit
                     var playlistControl = new EchoOrbit.Controls.PlaylistControl();
                     playlistControl.SongSelected += (filePath) =>
                     {
+                        // Set the current playlist in MusicController
+                        musicController.CurrentPlaylist = playlistControl.CurrentPlaylist;
+
+                        // Set the current index in MusicController based on the filePath.
+                        for (int i = 0; i < musicController.CurrentPlaylist.Count; i++)
+                        {
+                            if (musicController.CurrentPlaylist[i].FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                musicController.CurrentPlaylistIndex = i;
+                                break;
+                            }
+                        }
                         musicController.PlayMusicFromFile(filePath);
                     };
                     MainContent.Content = playlistControl;
@@ -230,6 +242,7 @@ namespace EchoOrbit
                 }
             }
         }
+
 
 
 
@@ -280,6 +293,8 @@ namespace EchoOrbit
                 MessageBox.Show("No playlist available for next track.");
             }
         }
+
+
 
 
 
