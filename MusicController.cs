@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.IO; // For System.IO.File
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives; // For drag events
@@ -8,10 +9,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using System.Windows.Threading;
-using TagLib;  // Requires TagLib# NuGet package
-
+using TagLib;
 using EchoOrbit.Models;
-
 
 namespace EchoOrbit
 {
@@ -23,6 +22,7 @@ namespace EchoOrbit
         private string fullMusicTitle = "";
         private bool isPlaying = false;
         private bool isSliderDragging = false;
+        private bool _processingMediaEnded = false;
 
         public MediaElement MusicPlayer { get; private set; }
         public Slider ProgressSlider { get; private set; }
@@ -104,14 +104,10 @@ namespace EchoOrbit
             MediaEnded();
         }
 
-        private bool _processingMediaEnded = false;
-
         public void MediaEnded()
         {
-            // Guard against reentry.
             if (_processingMediaEnded)
                 return;
-
             _processingMediaEnded = true;
             musicTimer.Stop();
             ProgressSlider.Value = 0;
@@ -125,11 +121,8 @@ namespace EchoOrbit
                 PlayPauseButton.Content = "▶";
                 isPlaying = false;
             }
-            // Use MusicPlayer's Dispatcher to reset the flag asynchronously.
             MusicPlayer.Dispatcher.BeginInvoke(new Action(() => _processingMediaEnded = false), DispatcherPriority.Background);
         }
-
-
 
         public void MediaOpened()
         {
@@ -159,7 +152,7 @@ namespace EchoOrbit
         {
             isSliderDragging = false;
             UpdatePosition(ProgressSlider.Value);
-            // If playback is stopped (because the track ended), resume playback.
+            // If playback is stopped (track ended), resume playback.
             if (!isPlaying)
             {
                 MusicPlayer.Play();
@@ -167,11 +160,6 @@ namespace EchoOrbit
                 isPlaying = true;
             }
         }
-
-
-
-
-
 
         public void OpenFileAndPlay()
         {
@@ -215,59 +203,70 @@ namespace EchoOrbit
                 {
                     FilePath = file,
                     Title = System.IO.Path.GetFileName(file),
-                    Thumbnail = GetAlbumArt(file)
+                    Thumbnail = GetAlbumArt(file)  // Synchronous load is acceptable here for standalone
                 };
                 PlaySong(standalone);
             }
         }
 
-        private void PlaySong(Song song)
+        /// <summary>
+        /// Offloads heavy operations (such as loading album art) to a background thread.
+        /// </summary>
+        private async void PlaySong(Song song)
         {
-            if (song == null) return;
+            if (song == null)
+                return;
 
+            // Set the media source on the UI thread.
             MusicPlayer.Source = new Uri(song.FilePath, UriKind.Absolute);
 
-            BitmapImage bmp = new BitmapImage();
-            string albumArtPath = System.IO.Path.ChangeExtension(song.FilePath, ".jpg");
-            if (System.IO.File.Exists(albumArtPath))
-            {
-                bmp.BeginInit();
-                bmp.UriSource = new Uri(albumArtPath, UriKind.Absolute);
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.EndInit();
-            }
-            else
+            // Offload album art loading to a background thread.
+            BitmapImage bmp = await Task.Run(() =>
             {
                 try
                 {
-                    var tagFile = TagLib.File.Create(song.FilePath);
-                    if (tagFile.Tag.Pictures.Length > 0)
+                    string albumArtPath = System.IO.Path.ChangeExtension(song.FilePath, ".jpg");
+                    if (System.IO.File.Exists(albumArtPath))
                     {
-                        var picData = tagFile.Tag.Pictures[0].Data.Data;
-                        using (var ms = new MemoryStream(picData))
-                        {
-                            bmp.BeginInit();
-                            bmp.CacheOption = BitmapCacheOption.OnLoad;
-                            bmp.StreamSource = ms;
-                            bmp.EndInit();
-                        }
+                        BitmapImage image = new BitmapImage();
+                        image.BeginInit();
+                        image.UriSource = new Uri(albumArtPath, UriKind.Absolute);
+                        image.CacheOption = BitmapCacheOption.OnLoad;
+                        image.EndInit();
+                        image.Freeze();
+                        return image;
                     }
                     else
                     {
-                        bmp.BeginInit();
-                        bmp.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
-                        bmp.CacheOption = BitmapCacheOption.OnLoad;
-                        bmp.EndInit();
+                        var tagFile = TagLib.File.Create(song.FilePath);
+                        if (tagFile.Tag.Pictures.Length > 0)
+                        {
+                            var picData = tagFile.Tag.Pictures[0].Data.Data;
+                            using (var ms = new MemoryStream(picData))
+                            {
+                                BitmapImage image = new BitmapImage();
+                                image.BeginInit();
+                                image.CacheOption = BitmapCacheOption.OnLoad;
+                                image.StreamSource = ms;
+                                image.EndInit();
+                                image.Freeze();
+                                return image;
+                            }
+                        }
                     }
                 }
-                catch
-                {
-                    bmp.BeginInit();
-                    bmp.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.EndInit();
-                }
-            }
+                catch { }
+                // Fallback image if nothing found.
+                BitmapImage fallback = new BitmapImage();
+                fallback.BeginInit();
+                fallback.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
+                fallback.CacheOption = BitmapCacheOption.OnLoad;
+                fallback.EndInit();
+                fallback.Freeze();
+                return fallback;
+            });
+
+            // Update the UI with the loaded album art.
             AudioThumbnailImage.Source = bmp;
 
             fullMusicTitle = song.Title;
@@ -342,7 +341,13 @@ namespace EchoOrbit
             string albumArtPath = System.IO.Path.ChangeExtension(file, ".jpg");
             if (System.IO.File.Exists(albumArtPath))
             {
-                return new BitmapImage(new Uri(albumArtPath, UriKind.Absolute));
+                BitmapImage image = new BitmapImage();
+                image.BeginInit();
+                image.UriSource = new Uri(albumArtPath, UriKind.Absolute);
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.EndInit();
+                image.Freeze();
+                return image;
             }
             else
             {
@@ -354,25 +359,27 @@ namespace EchoOrbit
                         var picData = tagFile.Tag.Pictures[0].Data.Data;
                         using (var ms = new MemoryStream(picData))
                         {
-                            BitmapImage bmp = new BitmapImage();
-                            bmp.BeginInit();
-                            bmp.CacheOption = BitmapCacheOption.OnLoad;
-                            bmp.StreamSource = ms;
-                            bmp.EndInit();
-                            return bmp;
+                            BitmapImage image = new BitmapImage();
+                            image.BeginInit();
+                            image.CacheOption = BitmapCacheOption.OnLoad;
+                            image.StreamSource = ms;
+                            image.EndInit();
+                            image.Freeze();
+                            return image;
                         }
                     }
                 }
                 catch { }
             }
-            return new BitmapImage(new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute));
+            BitmapImage fallback = new BitmapImage();
+            fallback.BeginInit();
+            fallback.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
+            fallback.CacheOption = BitmapCacheOption.OnLoad;
+            fallback.EndInit();
+            fallback.Freeze();
+            return fallback;
         }
     }
 
-    //public class Song
-    //{
-    //    public string FilePath { get; set; }
-    //    public string Title { get; set; }
-    //    public ImageSource Thumbnail { get; set; }
-    //}
+
 }

@@ -208,15 +208,18 @@ namespace EchoOrbit
             if (sender is Button btn)
             {
                 string item = btn.Content.ToString();
-                if (item == "Item2")
+                if (item == "Item1")
                 {
+                    // Load the ProfileControl.
+                    MainContent.Content = new EchoOrbit.Controls.ProfileControl();
+                }
+                else if (item == "Item2")
+                {
+                    // Load the PlaylistControl (existing code).
                     var playlistControl = new EchoOrbit.Controls.PlaylistControl();
                     playlistControl.SongSelected += (filePath) =>
                     {
-                        // Set the current playlist in MusicController
                         musicController.CurrentPlaylist = playlistControl.CurrentPlaylist;
-
-                        // Set the current index in MusicController based on the filePath.
                         for (int i = 0; i < musicController.CurrentPlaylist.Count; i++)
                         {
                             if (musicController.CurrentPlaylist[i].FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase))
@@ -228,6 +231,10 @@ namespace EchoOrbit
                         musicController.PlayMusicFromFile(filePath);
                     };
                     MainContent.Content = playlistControl;
+                }
+                else if (item == "Item3")
+                {
+                    MainContent.Content = new EchoOrbit.Controls.ConnectionsControl();
                 }
                 else
                 {
@@ -242,6 +249,7 @@ namespace EchoOrbit
                 }
             }
         }
+
 
 
 

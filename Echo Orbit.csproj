@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <None Remove="defaultAudioImage.jpg" />
+    <None Remove="defaultGroup.png" />
+    <None Remove="defaultProfile.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +28,8 @@
 
   <ItemGroup>
     <Resource Include="defaultAudioImage.jpg" />
+    <Resource Include="defaultGroup.png" />
+    <Resource Include="defaultProfile.png" />
   </ItemGroup>
 
 </Project>

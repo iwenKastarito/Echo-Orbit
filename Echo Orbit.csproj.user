@@ -7,14 +7,23 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="ConnectionsControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Dash.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="PlaylistControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="ProfileControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Page Update="ConnectionsControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Dash.xaml">
       <SubType>Designer</SubType>
     </Page>
@@ -25,6 +34,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="PlaylistView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="ProfileControl.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
