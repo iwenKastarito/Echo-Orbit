@@ -104,28 +104,32 @@ namespace EchoOrbit
             MediaEnded();
         }
 
+        private bool _processingMediaEnded = false;
+
         public void MediaEnded()
         {
+            // Guard against reentry.
+            if (_processingMediaEnded)
+                return;
+
+            _processingMediaEnded = true;
             musicTimer.Stop();
+            ProgressSlider.Value = 0;
+
             if (CurrentPlaylist != null && CurrentPlaylist.Count > 0)
             {
-                // For playlists, automatically play next song.
                 NextSong();
             }
             else
             {
-                // Standalone playback: reset the media so that slider changes work.
-                var currentSource = MusicPlayer.Source;
-                MusicPlayer.Stop();
-                // Reset the Source to force reinitialization.
-                MusicPlayer.Source = null;
-                MusicPlayer.Source = currentSource;
-                MusicPlayer.Position = TimeSpan.Zero;
-                ProgressSlider.Value = 0;
                 PlayPauseButton.Content = "▶";
                 isPlaying = false;
             }
+            // Use MusicPlayer's Dispatcher to reset the flag asynchronously.
+            MusicPlayer.Dispatcher.BeginInvoke(new Action(() => _processingMediaEnded = false), DispatcherPriority.Background);
         }
+
+
 
         public void MediaOpened()
         {
