@@ -15,11 +15,14 @@ namespace LocalMusicStreamingSecurity
     {
         #region Constants and Fields
 
+        // UDP broadcast port for discovery.
         private const int BroadcastPort = 8888;
+
+        // Discovery message identifiers.
         private const string DISCOVER_REQUEST = "DISCOVER_REQUEST";
         private const string DISCOVER_RESPONSE = "DISCOVER_RESPONSE";
 
-        // Store known peers’ public keys for key pinning.
+        // Dictionary to store known peers' public keys (for key pinning).
         private Dictionary<string, byte[]> knownPublicKeys = new Dictionary<string, byte[]>();
 
         // ECDH for secure key exchange.
@@ -48,7 +51,7 @@ namespace LocalMusicStreamingSecurity
         #region Events
 
         /// <summary>
-        /// Raised when a peer is discovered (and key exchange completed).
+        /// Raised when a peer is discovered (after successful key exchange).
         /// Provides the remote endpoint and the peer's public key.
         /// </summary>
         public event Action<IPEndPoint, byte[]> PeerDiscovered;
@@ -74,7 +77,7 @@ namespace LocalMusicStreamingSecurity
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
 
-            // Simulate WiFi details and compute fingerprint hash.
+            // Simulate gathering WiFi details and compute fingerprint hash.
             wifiFingerprintHash = ComputeSHA256(GetWiFiDetails());
 
             // Start key rotation timer (rotate every 5 minutes).
@@ -85,14 +88,9 @@ namespace LocalMusicStreamingSecurity
             // Initialize UDP client for peer discovery.
             udpClient = new UdpClient();
             udpClient.EnableBroadcast = true;
-            udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, BroadcastPort));
-
-            // Start listening for discovery messages on a background thread.
-            Task.Run(() => ListenForDiscoveryMessages());
-
             try
             {
-                // Get the local IPv4 address from the host name.
+                // Optionally, bind to the local IP address.
                 var hostEntry = Dns.GetHostEntry(Dns.GetHostName());
                 IPAddress localIP = null;
                 foreach (var ip in hostEntry.AddressList)
@@ -104,9 +102,7 @@ namespace LocalMusicStreamingSecurity
                     }
                 }
                 if (localIP == null)
-                {
                     localIP = IPAddress.Any;
-                }
                 udpClient.Client.Bind(new IPEndPoint(localIP, BroadcastPort));
                 Console.WriteLine("UDP client bound to " + localIP + ":" + BroadcastPort);
             }
@@ -114,6 +110,12 @@ namespace LocalMusicStreamingSecurity
             {
                 Console.WriteLine("UDP Bind failed: " + ex.Message);
             }
+
+            // Start listening for discovery messages on a background thread.
+            Task.Run(() => ListenForDiscoveryMessages());
+
+            // Immediately broadcast our presence on startup.
+            SendDiscoveryRequest();
         }
 
         #endregion
@@ -123,7 +125,7 @@ namespace LocalMusicStreamingSecurity
         // Simulated method to obtain WiFi details.
         private string GetWiFiDetails()
         {
-            // In a real application, retrieve actual WiFi details.
+            // In a real application, retrieve details like SSID, BSSID, signal strength, etc.
             return "SSID:MyWiFi;BSSID:00:11:22:33:44:55;Signal:-40;";
         }
 
@@ -159,7 +161,6 @@ namespace LocalMusicStreamingSecurity
             Console.WriteLine("Sent discovery request: " + message);
         }
 
-
         /// <summary>
         /// Continuously listens for discovery messages.
         /// </summary>
@@ -172,6 +173,7 @@ namespace LocalMusicStreamingSecurity
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, BroadcastPort);
                     byte[] data = udpClient.Receive(ref remoteEP);
                     string message = Encoding.UTF8.GetString(data);
+                    Console.WriteLine($"Received message from {remoteEP}: {message}");
                     HandleDiscoveryMessage(message, remoteEP);
                 }
                 catch (Exception ex)
@@ -186,11 +188,10 @@ namespace LocalMusicStreamingSecurity
         /// </summary>
         private void HandleDiscoveryMessage(string message, IPEndPoint remoteEP)
         {
-            Console.WriteLine($"Received discovery message from {remoteEP}: {message}");
             // Expected format: Type|PublicKey|WiFiHash|Timestamp|Nonce
             string[] parts = message.Split('|');
             if (parts.Length < 5)
-                return; // Invalid message.
+                return; // Invalid format
 
             string type = parts[0];
             string receivedPublicKeyBase64 = parts[1];
@@ -200,12 +201,13 @@ namespace LocalMusicStreamingSecurity
 
             if (!IsValidNonce(nonce) || IsTimestampStale(timestamp))
             {
-                Console.WriteLine("Replay attack detected or timestamp is stale.");
+                Console.WriteLine("Replay or stale timestamp detected.");
                 return;
             }
             MarkNonceUsed(nonce);
 
             byte[] receivedPublicKey = Convert.FromBase64String(receivedPublicKeyBase64);
+            string peerId = remoteEP.ToString();
 
             if (type == DISCOVER_REQUEST)
             {
@@ -218,33 +220,38 @@ namespace LocalMusicStreamingSecurity
                     GenerateNonce());
                 byte[] responseData = Encoding.UTF8.GetBytes(response);
                 udpClient.Send(responseData, responseData.Length, remoteEP);
+                Console.WriteLine("Responded to discovery request with: " + response);
             }
             else if (type == DISCOVER_RESPONSE)
             {
                 // Verify WiFi fingerprint.
                 if (receivedWifiHash != wifiFingerprintHash)
                 {
-                    Console.WriteLine("WiFi fingerprint mismatch. Possible attack.");
+                    Console.WriteLine("WiFi fingerprint mismatch from " + peerId);
                     return;
                 }
 
-                string peerId = remoteEP.ToString();
-                if (knownPublicKeys.ContainsKey(peerId))
+                if (!knownPublicKeys.ContainsKey(peerId))
                 {
-                    if (!AreKeysEqual(knownPublicKeys[peerId], receivedPublicKey))
-                    {
-                        Console.WriteLine("Public key change detected for peer {0}.", peerId);
-                        return;
-                    }
+                    // Unknown peer: store public key and broadcast our presence so that they get our info.
+                    knownPublicKeys[peerId] = receivedPublicKey;
+                    Console.WriteLine("New peer discovered: " + peerId);
+                    SendDiscoveryRequest();
                 }
                 else
                 {
-                    knownPublicKeys[peerId] = receivedPublicKey;
+                    // If known, ensure key consistency.
+                    if (!AreKeysEqual(knownPublicKeys[peerId], receivedPublicKey))
+                    {
+                        Console.WriteLine("Public key mismatch for peer " + peerId);
+                        return;
+                    }
                 }
 
+                // Establish shared secret.
                 EstablishSharedSecret(receivedPublicKey);
 
-                // Notify subscribers about the discovered peer.
+                // Raise event to inform that a peer has been discovered.
                 PeerDiscovered?.Invoke(remoteEP, receivedPublicKey);
             }
         }
@@ -284,7 +291,7 @@ namespace LocalMusicStreamingSecurity
         #region Secure Key Exchange and AES Encryption
 
         /// <summary>
-        /// Establishes a shared secret using ECDH key exchange.
+        /// Establishes a shared secret with a peer's public key using ECDH.
         /// </summary>
         public void EstablishSharedSecret(byte[] peerPublicKey)
         {
@@ -302,13 +309,13 @@ namespace LocalMusicStreamingSecurity
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error in key exchange: " + ex.Message);
+                Console.WriteLine("Key exchange error: " + ex.Message);
             }
         }
 
         /// <summary>
-        /// Encrypts a plaintext message using AES-256.
-        /// The IV is generated and prepended to the ciphertext.
+        /// Encrypts a plaintext message using AES-256 (with a new IV each time).
+        /// The IV is prepended to the ciphertext.
         /// </summary>
         public byte[] EncryptMessage(string plainText)
         {
@@ -328,8 +335,7 @@ namespace LocalMusicStreamingSecurity
         }
 
         /// <summary>
-        /// Decrypts a ciphertext message using AES-256.
-        /// Expects the IV to be prepended to the ciphertext.
+        /// Decrypts ciphertext using AES-256 (expects IV to be prepended).
         /// </summary>
         public string DecryptMessage(byte[] cipherData)
         {
@@ -356,7 +362,7 @@ namespace LocalMusicStreamingSecurity
             Console.WriteLine("Rotating session key...");
             sharedSecret = null;
             aesKey = null;
-            // Optionally: trigger a re-discovery or key exchange with peers.
+            // Optionally, trigger a re-discovery or re-key exchange.
         }
 
         #endregion
@@ -365,7 +371,7 @@ namespace LocalMusicStreamingSecurity
 
         public bool VerifyWiFiBSSID(string currentBSSID)
         {
-            string storedBSSID = "00:11:22:33:44:55"; // Replace with actual stored BSSID.
+            string storedBSSID = "00:11:22:33:44:55"; // Replace with your stored BSSID.
             return string.Equals(currentBSSID, storedBSSID, StringComparison.OrdinalIgnoreCase);
         }
 
