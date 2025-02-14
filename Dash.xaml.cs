@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Media.Animation;
 using LocalMusicStreamingSecurity;
 using EchoOrbit.Controls;
+using LocalNetworkTest;
 
 namespace EchoOrbit
 {
@@ -30,7 +31,7 @@ namespace EchoOrbit
         private SecurityManager securityManager;
         private ConnectionsControl connectionsControl;
 
-
+        private SimplePeerDiscovery peerDiscovery;
 
         public Dash()
         {
@@ -40,7 +41,8 @@ namespace EchoOrbit
             securityManager = new SecurityManager();
             // Optionally, send discovery request on startup:
             securityManager.SendDiscoveryRequest();
-
+            peerDiscovery = new SimplePeerDiscovery();
+            peerDiscovery.Start();
             // Initialize ConnectionsControl and subscribe to its event.
             connectionsControl = new ConnectionsControl();
             connectionsControl.OnlineUserChatRequested += ConnectionsControl_OnlineUserChatRequested;

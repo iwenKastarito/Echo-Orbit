@@ -1,15 +1,3 @@
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit.csproj.AssemblyReference.cache
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistControl.baml
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\App.baml
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Dash.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\MainWindow.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistControl.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistView.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\App.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit_Content.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\GeneratedInternalTypeHelper.g.cs
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit_MarkupCompile.cache
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit_MarkupCompile.lref
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.22621.0\Echo Orbit.exe
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.22621.0\Echo Orbit.deps.json
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.22621.0\Echo Orbit.runtimeconfig.json
@@ -33,8 +21,22 @@ C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.2
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.22621.0\zh-Hant\Microsoft.SqlServer.TransactSql.ScriptDom.resources.dll
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.22621.0\Microsoft.Windows.SDK.NET.dll
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\bin\Debug\net8.0-windows10.0.22621.0\WinRT.Runtime.dll
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit.csproj.AssemblyReference.cache
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ConnectionsControl.baml
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistControl.baml
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ProfileControl.baml
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\App.baml
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ConnectionsControl.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Dash.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\MainWindow.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistControl.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistView.g.cs
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ProfileControl.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\App.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit_Content.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\GeneratedInternalTypeHelper.g.cs
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit_MarkupCompile.cache
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit_MarkupCompile.lref
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Dash.baml
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\MainWindow.baml
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\PlaylistView.baml
@@ -50,5 +52,3 @@ C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.2
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit.pdb
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit.genruntimeconfig.cache
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ref\Echo Orbit.dll
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ConnectionsControl.baml
-C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ConnectionsControl.g.cs
