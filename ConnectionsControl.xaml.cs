@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
@@ -10,6 +11,8 @@ namespace EchoOrbit.Controls
     {
         public ObservableCollection<OnlineUser> OnlineUsers { get; set; }
         public ObservableCollection<Group> Groups { get; set; }
+
+        public event Action<OnlineUser> OnlineUserChatRequested;
 
         public ConnectionsControl()
         {
@@ -30,6 +33,16 @@ namespace EchoOrbit.Controls
             // Populate NewGroupMembersListBox with OnlineUsers for selection.
             NewGroupMembersListBox.ItemsSource = OnlineUsers;
         }
+
+        private void ChatButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is OnlineUser user)
+            {
+                // Raise an event so that the main window can initiate chat with this user.
+                OnlineUserChatRequested?.Invoke(user);
+            }
+        }
+
 
         private void NewGroupButton_Click(object sender, RoutedEventArgs e)
         {
@@ -96,6 +109,8 @@ namespace EchoOrbit.Controls
     {
         public string DisplayName { get; set; }
         public BitmapImage ProfileImage { get; set; }
+
+        public IPEndPoint PeerEndpoint { get; set; }
     }
 
     public class Group
