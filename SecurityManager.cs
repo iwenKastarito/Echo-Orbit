@@ -1,409 +1,218 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
-using System.Runtime.InteropServices;
 
-namespace LocalMusicStreamingSecurity
+namespace LocalChatSecurity
 {
     public class SecurityManager
     {
-        #region Constants and Fields
-
-        // UDP broadcast port for discovery.
-        private const int BroadcastPort = 8888;
-
-        // Discovery message identifiers.
-        private const string DISCOVER_REQUEST = "DISCOVER_REQUEST";
-        private const string DISCOVER_RESPONSE = "DISCOVER_RESPONSE";
-
-        // Dictionary to store known peers' public keys (for key pinning).
-        private Dictionary<string, byte[]> knownPublicKeys = new Dictionary<string, byte[]>();
-
-        // ECDH for secure key exchange.
-        private ECDiffieHellmanCng ecdh;
-        public byte[] PublicKey { get; private set; }
-        private byte[] sharedSecret;
-        private byte[] aesKey;
-
-        // AES for message encryption/decryption.
-        private Aes aes;
-
-        // Replay protection: store used nonces.
-        private HashSet<string> usedNonces = new HashSet<string>();
-
-        // Session key rotation timer (rotate every 5 minutes).
-        private System.Timers.Timer keyRotationTimer;
-
-        // Simulated WiFi fingerprint hash.
-        private string wifiFingerprintHash;
-
-        // UDP client for peer discovery.
-        private UdpClient udpClient;
-
-        #endregion
-
-        #region Events
-
-        /// <summary>
-        /// Raised when a peer is discovered (after successful key exchange).
-        /// Provides the remote endpoint and the peer's public key.
-        /// </summary>
-        public event Action<IPEndPoint, byte[]> PeerDiscovered;
-
-        #endregion
-
-        #region Constructor
+        private const string KeyFilePath = "userLongTermKey.xml"; // File to store the long-term key (adjust path as needed)
+        private RSA rsaLongTerm; // Long-term RSA key pair (identity)
+        private ECDiffieHellmanCng ecdh; // Ephemeral key for Diffie–Hellman key exchange
 
         public SecurityManager()
         {
-            // Initialize ECDH key exchange.
+            LoadOrGenerateLongTermKeys();
+        }
+
+        #region Long-Term Key Management
+
+        /// <summary>
+        /// Loads the persistent long-term RSA key pair from disk or generates a new one if none exists.
+        /// This key pair is used to sign ephemeral key exchange messages so peers can verify your identity.
+        /// </summary>
+        private void LoadOrGenerateLongTermKeys()
+        {
+            if (File.Exists(KeyFilePath))
+            {
+                // Load existing long-term key
+                string keyXml = File.ReadAllText(KeyFilePath);
+                rsaLongTerm = RSA.Create();
+                rsaLongTerm.FromXmlString(keyXml);
+            }
+            else
+            {
+                // Generate a new long-term RSA key pair (2048-bit is standard)
+                rsaLongTerm = RSA.Create(2048);
+                string keyXml = rsaLongTerm.ToXmlString(true);
+                File.WriteAllText(KeyFilePath, keyXml);
+            }
+        }
+
+        /// <summary>
+        /// Returns your long-term public key as an XML string.
+        /// Share this with peers so they can verify your signed ephemeral key.
+        /// </summary>
+        public string GetLongTermPublicKeyXml()
+        {
+            // Export only the public part
+            return rsaLongTerm.ToXmlString(false);
+        }
+
+        #endregion
+
+        #region Ephemeral Key Exchange
+
+        /// <summary>
+        /// Starts the key exchange by generating an ephemeral ECDiffie–Hellman key pair.
+        /// It then exports the ephemeral public key and signs it with your long-term private key.
+        /// </summary>
+        /// <returns>
+        /// A tuple containing:
+        /// - ephemeralPublicKey: the raw bytes of the ephemeral ECDH public key.
+        /// - signature: a signature over the ephemeral public key using your RSA long-term key.
+        /// </returns>
+        public (byte[] ephemeralPublicKey, byte[] signature) StartKeyExchange()
+        {
+            // Create a new ephemeral ECDiffie–Hellman key pair.
             ecdh = new ECDiffieHellmanCng
             {
                 KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash,
                 HashAlgorithm = CngAlgorithm.Sha256
             };
-            PublicKey = ecdh.PublicKey.ToByteArray();
 
-            // Initialize AES encryption (AES-256).
-            aes = Aes.Create();
-            aes.KeySize = 256;
-            aes.BlockSize = 128;
-            aes.Mode = CipherMode.CBC;
-            aes.Padding = PaddingMode.PKCS7;
+            // Export the ephemeral public key in a standard blob format.
+            byte[] ephemeralPublicKey = ecdh.PublicKey.ToByteArray();
 
-            // Simulate gathering WiFi details and compute fingerprint hash.
-            wifiFingerprintHash = ComputeSHA256(GetWiFiDetails());
+            // Sign the ephemeral public key using your long-term RSA private key.
+            byte[] signature = rsaLongTerm.SignData(ephemeralPublicKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-            // Start key rotation timer (rotate every 5 minutes).
-            keyRotationTimer = new System.Timers.Timer(5 * 60 * 1000);
-            keyRotationTimer.Elapsed += (sender, e) => RotateSessionKey();
-            keyRotationTimer.Start();
+            return (ephemeralPublicKey, signature);
+        }
 
-            // Initialize UDP client for peer discovery.
-            udpClient = new UdpClient();
-            udpClient.EnableBroadcast = true;
-            try
+        /// <summary>
+        /// Completes the key exchange after receiving a peer's ephemeral public key, its signature, and the peer's long-term public key.
+        /// This method verifies the signature and then derives a shared symmetric key.
+        /// </summary>
+        /// <param name="peerEphemeralPublicKey">The peer's ephemeral ECDH public key (byte array).</param>
+        /// <param name="peerSignature">The signature over the peer's ephemeral public key.</param>
+        /// <param name="peerLongTermPublicKeyXml">The peer's long-term public key as an XML string.</param>
+        /// <returns>A symmetric key (SHA256 hash of the shared secret) for encrypting further communications.</returns>
+        public byte[] CompleteKeyExchange(byte[] peerEphemeralPublicKey, byte[] peerSignature, string peerLongTermPublicKeyXml)
+        {
+            // Verify the peer's ephemeral public key was signed by its long-term private key.
+            using (RSA rsaPeer = RSA.Create())
             {
-                // Optionally, bind to the local IP address.
-                var hostEntry = Dns.GetHostEntry(Dns.GetHostName());
-                IPAddress localIP = null;
-                foreach (var ip in hostEntry.AddressList)
+                rsaPeer.FromXmlString(peerLongTermPublicKeyXml);
+                bool verified = rsaPeer.VerifyData(peerEphemeralPublicKey, peerSignature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                if (!verified)
                 {
-                    if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    throw new CryptographicException("Peer ephemeral key signature verification failed. Possible MITM attack.");
+                }
+            }
+
+            // Import the peer's ephemeral public key as an ECDiffie–Hellman public key.
+            using (ECDiffieHellmanCng peerEcdh = new ECDiffieHellmanCng(CngKey.Import(peerEphemeralPublicKey, CngKeyBlobFormat.EccPublicBlob)))
+            {
+                // Derive the shared secret using our ephemeral key.
+                byte[] sharedSecret = ecdh.DeriveKeyMaterial(peerEcdh.PublicKey);
+
+                // Hash the shared secret (using SHA256) to produce a symmetric key.
+                using (SHA256 sha = SHA256.Create())
+                {
+                    byte[] symmetricKey = sha.ComputeHash(sharedSecret);
+                    return symmetricKey;
+                }
+            }
+        }
+
+        #endregion
+
+        #region AES Message Encryption/Decryption
+
+        /// <summary>
+        /// Encrypts a plaintext message using AES with the provided symmetric key.
+        /// The IV is generated randomly and prepended to the ciphertext.
+        /// </summary>
+        /// <param name="plainText">The plaintext bytes to encrypt.</param>
+        /// <param name="symmetricKey">The symmetric key (should be 256 bits if using SHA256 hash output).</param>
+        /// <returns>The encrypted data with the IV prepended.</returns>
+        public byte[] EncryptMessage(byte[] plainText, byte[] symmetricKey)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = symmetricKey;
+                aes.GenerateIV();
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    // Prepend the IV so it can be used during decryption.
+                    ms.Write(aes.IV, 0, aes.IV.Length);
+                    using (CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        localIP = ip;
-                        break;
+                        cs.Write(plainText, 0, plainText.Length);
+                        cs.FlushFinalBlock();
+                        return ms.ToArray();
                     }
                 }
-                if (localIP == null)
-                    localIP = IPAddress.Any;
-                udpClient.Client.Bind(new IPEndPoint(localIP, BroadcastPort));
-                Console.WriteLine("UDP client bound to " + localIP + ":" + BroadcastPort);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("UDP Bind failed: " + ex.Message);
-            }
-
-            // Start listening for discovery messages on a background thread.
-            Task.Run(() => ListenForDiscoveryMessages());
-
-            // Immediately broadcast our presence on startup.
-            SendDiscoveryRequest();
-        }
-
-        #endregion
-
-        #region WiFi Fingerprint Methods
-
-        // Simulated method to obtain WiFi details.
-        private string GetWiFiDetails()
-        {
-            // In a real application, retrieve details like SSID, BSSID, signal strength, etc.
-            return "SSID:MyWiFi;BSSID:00:11:22:33:44:55;Signal:-40;";
-        }
-
-        // Compute a SHA-256 hash of the input string.
-        private string ComputeSHA256(string input)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-            }
-        }
-
-        #endregion
-
-        #region UDP Peer Discovery
-
-        /// <summary>
-        /// Sends a discovery request via UDP broadcast.
-        /// </summary>
-        public void SendDiscoveryRequest()
-        {
-            string nonce = GenerateNonce();
-            string message = string.Format("{0}|{1}|{2}|{3}|{4}",
-                DISCOVER_REQUEST,
-                Convert.ToBase64String(PublicKey),
-                wifiFingerprintHash,
-                DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                nonce);
-            byte[] data = Encoding.UTF8.GetBytes(message);
-            IPEndPoint broadcastEP = new IPEndPoint(IPAddress.Broadcast, BroadcastPort);
-            udpClient.Send(data, data.Length, broadcastEP);
-            Console.WriteLine("Sent discovery request: " + message);
-        }
-
-        /// <summary>
-        /// Continuously listens for discovery messages.
-        /// </summary>
-        public void ListenForDiscoveryMessages()
-        {
-            while (true)
-            {
-                try
-                {
-                    IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, BroadcastPort);
-                    byte[] data = udpClient.Receive(ref remoteEP);
-                    string message = Encoding.UTF8.GetString(data);
-                    Console.WriteLine($"Received message from {remoteEP}: {message}");
-                    HandleDiscoveryMessage(message, remoteEP);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error in discovery listener: " + ex.Message);
-                }
             }
         }
 
         /// <summary>
-        /// Processes incoming discovery messages.
+        /// Decrypts data that was encrypted using EncryptMessage.
+        /// Expects the first 16 bytes to be the IV.
         /// </summary>
-        private void HandleDiscoveryMessage(string message, IPEndPoint remoteEP)
+        /// <param name="cipherData">The encrypted data with the IV prepended.</param>
+        /// <param name="symmetricKey">The symmetric key used during encryption.</param>
+        /// <returns>The decrypted plaintext bytes.</returns>
+        public byte[] DecryptMessage(byte[] cipherData, byte[] symmetricKey)
         {
-            // Expected format: Type|PublicKey|WiFiHash|Timestamp|Nonce
-            string[] parts = message.Split('|');
-            if (parts.Length < 5)
-                return; // Invalid format
-
-            string type = parts[0];
-            string receivedPublicKeyBase64 = parts[1];
-            string receivedWifiHash = parts[2];
-            long timestamp = long.Parse(parts[3]);
-            string nonce = parts[4];
-
-            if (!IsValidNonce(nonce) || IsTimestampStale(timestamp))
+            using (Aes aes = Aes.Create())
             {
-                Console.WriteLine("Replay or stale timestamp detected.");
-                return;
-            }
-            MarkNonceUsed(nonce);
+                aes.Key = symmetricKey;
 
-            byte[] receivedPublicKey = Convert.FromBase64String(receivedPublicKeyBase64);
-            string peerId = remoteEP.ToString();
+                // Extract the IV from the beginning of the cipherData.
+                byte[] iv = new byte[aes.BlockSize / 8];
+                Array.Copy(cipherData, 0, iv, 0, iv.Length);
+                aes.IV = iv;
 
-            if (type == DISCOVER_REQUEST)
-            {
-                // Respond with our public key and WiFi fingerprint hash.
-                string response = string.Format("{0}|{1}|{2}|{3}|{4}",
-                    DISCOVER_RESPONSE,
-                    Convert.ToBase64String(PublicKey),
-                    wifiFingerprintHash,
-                    DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                    GenerateNonce());
-                byte[] responseData = Encoding.UTF8.GetBytes(response);
-                udpClient.Send(responseData, responseData.Length, remoteEP);
-                Console.WriteLine("Responded to discovery request with: " + response);
-            }
-            else if (type == DISCOVER_RESPONSE)
-            {
-                // Verify WiFi fingerprint.
-                if (receivedWifiHash != wifiFingerprintHash)
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    Console.WriteLine("WiFi fingerprint mismatch from " + peerId);
-                    return;
-                }
-
-                if (!knownPublicKeys.ContainsKey(peerId))
-                {
-                    // Unknown peer: store public key and broadcast our presence so that they get our info.
-                    knownPublicKeys[peerId] = receivedPublicKey;
-                    Console.WriteLine("New peer discovered: " + peerId);
-                    SendDiscoveryRequest();
-                }
-                else
-                {
-                    // If known, ensure key consistency.
-                    if (!AreKeysEqual(knownPublicKeys[peerId], receivedPublicKey))
+                    // Decrypt starting after the IV.
+                    using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
                     {
-                        Console.WriteLine("Public key mismatch for peer " + peerId);
-                        return;
+                        cs.Write(cipherData, iv.Length, cipherData.Length - iv.Length);
+                        cs.FlushFinalBlock();
+                        return ms.ToArray();
                     }
                 }
-
-                // Establish shared secret.
-                EstablishSharedSecret(receivedPublicKey);
-
-                // Raise event to inform that a peer has been discovered.
-                PeerDiscovered?.Invoke(remoteEP, receivedPublicKey);
             }
         }
 
         #endregion
 
-        #region Replay Protection
+        #region Usage Summary
 
-        private bool IsValidNonce(string nonce)
-        {
-            return !usedNonces.Contains(nonce);
-        }
-
-        private void MarkNonceUsed(string nonce)
-        {
-            usedNonces.Add(nonce);
-        }
-
-        private bool IsTimestampStale(long timestamp)
-        {
-            long currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            return Math.Abs(currentTimestamp - timestamp) > 60;
-        }
-
-        private string GenerateNonce()
-        {
-            byte[] nonceBytes = new byte[16];
-            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(nonceBytes);
-            }
-            return Convert.ToBase64String(nonceBytes);
-        }
-
-        #endregion
-
-        #region Secure Key Exchange and AES Encryption
-
-        /// <summary>
-        /// Establishes a shared secret with a peer's public key using ECDH.
-        /// </summary>
-        public void EstablishSharedSecret(byte[] peerPublicKey)
-        {
-            try
-            {
-                using (CngKey peerKey = CngKey.Import(peerPublicKey, CngKeyBlobFormat.EccPublicBlob))
-                {
-                    sharedSecret = ecdh.DeriveKeyMaterial(peerKey);
-                }
-                using (SHA256 sha256 = SHA256.Create())
-                {
-                    aesKey = sha256.ComputeHash(sharedSecret);
-                }
-                Console.WriteLine("Shared secret established and AES key derived.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Key exchange error: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Encrypts a plaintext message using AES-256 (with a new IV each time).
-        /// The IV is prepended to the ciphertext.
-        /// </summary>
-        public byte[] EncryptMessage(string plainText)
-        {
-            aes.GenerateIV();
-            ICryptoTransform encryptor = aes.CreateEncryptor(aesKey, aes.IV);
-            using (MemoryStream ms = new MemoryStream())
-            {
-                ms.Write(aes.IV, 0, aes.IV.Length);
-                using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                {
-                    byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
-                    cs.Write(plainBytes, 0, plainBytes.Length);
-                    cs.FlushFinalBlock();
-                    return ms.ToArray();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Decrypts ciphertext using AES-256 (expects IV to be prepended).
-        /// </summary>
-        public string DecryptMessage(byte[] cipherData)
-        {
-            byte[] iv = new byte[aes.BlockSize / 8];
-            Array.Copy(cipherData, 0, iv, 0, iv.Length);
-            ICryptoTransform decryptor = aes.CreateDecryptor(aesKey, iv);
-            using (MemoryStream ms = new MemoryStream(cipherData, iv.Length, cipherData.Length - iv.Length))
-            {
-                using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-                {
-                    byte[] plainBytes = new byte[cipherData.Length];
-                    int decryptedByteCount = cs.Read(plainBytes, 0, plainBytes.Length);
-                    return Encoding.UTF8.GetString(plainBytes, 0, decryptedByteCount);
-                }
-            }
-        }
-
-        #endregion
-
-        #region Session Key Rotation
-
-        private void RotateSessionKey()
-        {
-            Console.WriteLine("Rotating session key...");
-            sharedSecret = null;
-            aesKey = null;
-            // Optionally, trigger a re-discovery or re-key exchange.
-        }
-
-        #endregion
-
-        #region Evil Twin WiFi Detection
-
-        public bool VerifyWiFiBSSID(string currentBSSID)
-        {
-            string storedBSSID = "00:11:22:33:44:55"; // Replace with your stored BSSID.
-            return string.Equals(currentBSSID, storedBSSID, StringComparison.OrdinalIgnoreCase);
-        }
-
-        #endregion
-
-        #region Secure Private Key Storage Using DPAPI
-
-        public byte[] ProtectPrivateKey(byte[] privateKeyBytes)
-        {
-            return ProtectedData.Protect(privateKeyBytes, null, DataProtectionScope.CurrentUser);
-        }
-
-        public byte[] UnprotectPrivateKey(byte[] protectedBytes)
-        {
-            return ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
-        }
-
-        #endregion
-
-        #region Utility Methods
-
-        private bool AreKeysEqual(byte[] key1, byte[] key2)
-        {
-            if (key1.Length != key2.Length)
-                return false;
-            for (int i = 0; i < key1.Length; i++)
-            {
-                if (key1[i] != key2[i])
-                    return false;
-            }
-            return true;
-        }
+        /*
+         * How to use SecurityManager:
+         *
+         * 1. Instantiate SecurityManager when your app starts:
+         *      var secManager = new SecurityManager();
+         *
+         * 2. Get your long-term public key (identity) and share it with peers:
+         *      string myPublicKeyXml = secManager.GetLongTermPublicKeyXml();
+         *
+         * 3. When starting a connection with a peer:
+         *    - Call StartKeyExchange() to get your ephemeral ECDH public key and its RSA signature:
+         *          var (myEphemeralKey, mySignature) = secManager.StartKeyExchange();
+         *
+         *    - Send these along with your long-term public key to the peer.
+         *
+         * 4. When receiving a key exchange from a peer:
+         *    - Receive the peer’s ephemeral public key, its signature, and their long-term public key.
+         *    - Call CompleteKeyExchange() to verify the signature and derive a shared symmetric key:
+         *          byte[] symmetricKey = secManager.CompleteKeyExchange(peerEphemeralKey, peerSignature, peerPublicKeyXml);
+         *
+         * 5. Use the symmetricKey with EncryptMessage() and DecryptMessage() to securely exchange messages.
+         *
+         * This mechanism helps prevent MITM attacks by ensuring that ephemeral key data is signed
+         * by the sender’s long-term key. Since these keys are generated once and stored securely,
+         * a reconnecting user will have the same long-term key, which aids in verifying identities over time.
+         *
+         * Additionally, a Wi-Fi intruder (without the proper long-term private key) cannot impersonate
+         * a legitimate user because they cannot produce valid signatures over the ephemeral keys.
+         */
 
         #endregion
     }

@@ -8,13 +8,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Media.Imaging;
-//using EchoOrbit.Models;
 using EchoOrbit.Helpers;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
-using LocalMusicStreamingSecurity;
 using EchoOrbit.Controls;
 using LocalNetworkTest;
+using LocalChatSecurity; // Contains SecurityManager
 
 namespace EchoOrbit
 {
@@ -28,30 +27,32 @@ namespace EchoOrbit
         private AttachmentManager attachmentManager;
         private ChatManager chatManager;
 
-        private SecurityManager securityManager;
         private ConnectionsControl connectionsControl;
 
+        // Security and Discovery Managers.
+        private SecurityManager securityManager;
         private SimplePeerDiscovery peerDiscovery;
 
         public Dash()
         {
             InitializeComponent();
 
-            // Initialize SecurityManager (starts discovery, key exchange, etc.)
+            // Initialize the SecurityManager.
             securityManager = new SecurityManager();
-            // Optionally, send discovery request on startup:
-            securityManager.SendDiscoveryRequest();
+
+            // Initialize Peer Discovery.
             peerDiscovery = new SimplePeerDiscovery();
             peerDiscovery.Start();
-            // Initialize ConnectionsControl and subscribe to its event.
+
+            // Initialize ConnectionsControl.
             connectionsControl = new ConnectionsControl();
+            // Subscribe to the chat-request event.
             connectionsControl.OnlineUserChatRequested += ConnectionsControl_OnlineUserChatRequested;
-
- 
-
 
             musicController = new MusicController(MusicPlayer, MusicProgressSlider, ElapsedTimeText, RemainingTimeText, PlayPauseButton, MusicTitle, AudioThumbnailImage);
             attachmentManager = new AttachmentManager(AttachmentsSummaryPanel, ImageAttachmentIndicator, ImageAttachmentCount, AudioAttachmentIndicator, AudioAttachmentCount, ZipAttachmentIndicator, ZipAttachmentCount);
+
+            // Pass the main chat container to ChatManager.
             chatManager = new ChatManager(MessagesContainer, musicController);
 
             this.Loaded += Dash_Loaded;
@@ -61,11 +62,17 @@ namespace EchoOrbit
         private void Dash_Loaded(object sender, RoutedEventArgs e)
         {
             userData = UserDataManager.LoadUserData();
+
+            // Optionally, trigger additional secure steps here.
+            // For example, if you want to perform an immediate key exchange:
+            // var (myEphemeralKey, mySignature) = securityManager.StartKeyExchange();
+            // Then send these (along with your long-term public key) to discovered peers.
         }
 
         private void Dash_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            UserDataManager.SaveUserData(userData);
+            UserDataManager.SaveUserData(userData);            // If in the future you add a Stop() method to SimplePeerDiscovery, you can call it here.
+            // For now, no such method exists.
         }
 
         private void ChatArea_DragEnter(object sender, DragEventArgs e)
@@ -142,10 +149,16 @@ namespace EchoOrbit
         private void SendButton_Click(object sender, RoutedEventArgs e)
         {
             string messageText = MessageTextBox.Text;
-            chatManager.SendMessage(messageText, attachmentManager.ImageAttachments, attachmentManager.AudioAttachments, attachmentManager.ZipAttachments);
+            chatManager.SendMessage(
+                messageText,
+                attachmentManager.ImageAttachments.ConvertAll(item => item.ToString()),
+                attachmentManager.AudioAttachments.ConvertAll(item => item.ToString()),
+                attachmentManager.ZipAttachments.ConvertAll(item => item.ToString())
+            );
             MessageTextBox.Clear();
             attachmentManager.ClearAttachments();
         }
+
 
         private void MessageTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -236,7 +249,7 @@ namespace EchoOrbit
                 }
                 else if (item == "Item2")
                 {
-                    // Load the PlaylistControl (existing code).
+                    // Load the PlaylistControl.
                     var playlistControl = new EchoOrbit.Controls.PlaylistControl();
                     playlistControl.SongSelected += (filePath) =>
                     {
@@ -256,7 +269,6 @@ namespace EchoOrbit
                 else if (item == "Item3")
                 {
                     MainContent.Content = connectionsControl;
-                    //MainContent.Content = new EchoOrbit.Controls.ConnectionsControl();
                 }
                 else
                 {
@@ -272,29 +284,27 @@ namespace EchoOrbit
             }
         }
 
-        private void ConnectionsControl_OnlineUserChatRequested(Controls.OnlineUser user)
+        private void ConnectionsControl_OnlineUserChatRequested(OnlineUser user)
         {
-            // Here you can perform the necessary secure steps:
-            // 1. (Optional) Send a discovery request if not done.
-            // 2. The SecurityManager should have already discovered the peer and stored its public key.
-            // 3. Use the peer's public key to establish a shared secret.
-            // For this example, assume that our SecurityManager has already done key exchange via its ListenForDiscoveryMessages().
-            // (You could check if securityManager already has a shared secret with the peer by looking up the peer's endpoint.)
-            // 4. Open the chat drawer (if not already open) and load a chat interface targeting that peer.
-            // For demonstration, we simply set the chat drawer's visibility and display a welcome message.
-            OpenChatWithPeer(user);
+            // Create a new ChatSession for the selected peer.
+            chatManager.CurrentChatSession = new ChatSession(user);
+
+            // Open the chat drawer and clear previous messages.
+            ChatDrawer.Visibility = Visibility.Visible;
+            MessagesContainer.Children.Clear();
+            MessagesContainer.Children.Add(new TextBlock
+            {
+                Text = $"Chat started with {user.DisplayName}.",
+                Foreground = Brushes.White,
+                Margin = new Thickness(5)
+            });
         }
 
         private void OpenChatWithPeer(Controls.OnlineUser user)
         {
-            // (You may want to verify that securityManager has a shared secret for this peer.
-            //  For example, you could have a dictionary mapping endpoints to shared secrets.)
-            // For now, we assume that the SecurityManager has already exchanged keys with this peer.
-            // Then, open the chat drawer (if it's hidden) and set up the chat.
+            // Assuming the SecurityManager has already established a shared secret with the peer,
+            // open the chat drawer and load the secure chat interface.
             ChatDrawer.Visibility = Visibility.Visible;
-            // Optionally, update a label in the chat drawer with the peer's name.
-            // And store the peer's information for sending secure messages.
-            // For demonstration, we simply write a message into the chat area.
             MessagesContainer.Children.Clear();
             MessagesContainer.Children.Add(new TextBlock
             {
@@ -303,17 +313,6 @@ namespace EchoOrbit
                 Margin = new Thickness(5)
             });
         }
-
-
-
-
-
-
-
-
-
-
-
 
         private void BottomBar_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -351,13 +350,6 @@ namespace EchoOrbit
                 MessageBox.Show("No playlist available for next track.");
             }
         }
-
-
-
-
-
-
-
 
         private void FutureButton_Click(object sender, RoutedEventArgs e)
         {

@@ -18,40 +18,62 @@ namespace EchoOrbit.Controls
         {
             InitializeComponent();
             DataContext = this;
+
             // Sample data for online users.
             OnlineUsers = new ObservableCollection<OnlineUser>
             {
-                new OnlineUser { DisplayName = "Alice", ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)) },
-                new OnlineUser { DisplayName = "Bob", ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)) },
-                new OnlineUser { DisplayName = "Charlie", ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)) },
-                new OnlineUser { DisplayName = "David", ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)) }
+                new OnlineUser
+                {
+                    DisplayName = "Alice",
+                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
+                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
+                },
+                new OnlineUser
+                {
+                    DisplayName = "Bob",
+                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
+                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
+                },
+                new OnlineUser
+                {
+                    DisplayName = "Charlie",
+                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
+                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
+                },
+                new OnlineUser
+                {
+                    DisplayName = "David",
+                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
+                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
+                }
             };
 
-            // Start with no groups.
+            // Initialize groups (empty at start).
             Groups = new ObservableCollection<Group>();
-
-            // Populate NewGroupMembersListBox with OnlineUsers for selection.
-            NewGroupMembersListBox.ItemsSource = OnlineUsers;
         }
 
+        // Called when the Chat button is clicked.
         private void ChatButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is OnlineUser user)
             {
-                // Raise an event so that the main window can initiate chat with this user.
                 OnlineUserChatRequested?.Invoke(user);
             }
         }
 
-
+        // Called when the New Group button is clicked.
         private void NewGroupButton_Click(object sender, RoutedEventArgs e)
         {
-            NewGroupPanel.Visibility = (NewGroupPanel.Visibility == Visibility.Visible) ? Visibility.Collapsed : Visibility.Visible;
+            // Toggle visibility of the New Group creation panel.
+            NewGroupPanel.Visibility = (NewGroupPanel.Visibility == Visibility.Visible)
+                                        ? Visibility.Collapsed
+                                        : Visibility.Visible;
         }
 
+        // Called when the Change Image button (for group image) is clicked.
         private void NewGroupChangeImageButton_Click(object sender, RoutedEventArgs e)
         {
-            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+            var dlg = new Microsoft.Win32.OpenFileDialog();
             dlg.Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp";
             if (dlg.ShowDialog() == true)
             {
@@ -60,11 +82,13 @@ namespace EchoOrbit.Controls
             }
         }
 
+        // Called when the Cancel button is clicked in the New Group panel.
         private void CancelNewGroupButton_Click(object sender, RoutedEventArgs e)
         {
             NewGroupPanel.Visibility = Visibility.Collapsed;
         }
 
+        // Called when the Create Group button is clicked.
         private void CreateGroupButton_Click(object sender, RoutedEventArgs e)
         {
             string groupName = NewGroupNameTextBox.Text;
@@ -86,6 +110,8 @@ namespace EchoOrbit.Controls
             Group newGroup = new Group { GroupName = groupName, GroupImage = groupImage };
             Groups.Add(newGroup);
             MessageBox.Show("New group created.", "Group", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Reset UI.
             NewGroupPanel.Visibility = Visibility.Collapsed;
             NewGroupNameTextBox.Text = "";
             NewGroupImagePreview.Source = null;
@@ -93,11 +119,15 @@ namespace EchoOrbit.Controls
             NewGroupMembersListBox.SelectedItems.Clear();
         }
 
+        // Called when the Remove Group button is clicked.
         private void RemoveGroupButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.DataContext is Group group)
             {
-                if (MessageBox.Show($"Are you sure you want to remove group '{group.GroupName}'?", "Confirm Removal", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                if (MessageBox.Show($"Are you sure you want to remove group '{group.GroupName}'?",
+                                    "Confirm Removal",
+                                    MessageBoxButton.YesNo,
+                                    MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
                     Groups.Remove(group);
                 }
@@ -105,14 +135,17 @@ namespace EchoOrbit.Controls
         }
     }
 
+    // Definition for OnlineUser.
     public class OnlineUser
     {
         public string DisplayName { get; set; }
         public BitmapImage ProfileImage { get; set; }
 
+        // The network endpoint for connecting to this peer.
         public IPEndPoint PeerEndpoint { get; set; }
     }
 
+    // Definition for Group.
     public class Group
     {
         public string GroupName { get; set; }

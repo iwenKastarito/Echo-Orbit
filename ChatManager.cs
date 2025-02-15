@@ -1,183 +1,91 @@
-﻿using EchoOrbit.Helpers;
+﻿// ChatManager.cs
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
 using System.Windows.Media;
 
-namespace EchoOrbit
+namespace EchoOrbit.Helpers
 {
     public class ChatManager
     {
         private StackPanel messagesContainer;
-        private MusicController musicController; // Reference to MusicController
+        private MusicController musicController;
 
-        public ChatManager(StackPanel container, MusicController musicCtrl)
+        /// <summary>
+        /// The current active chat session.
+        /// </summary>
+        public ChatSession CurrentChatSession { get; set; }
+
+        // We'll use a UDP client on a fixed port for demonstration.
+        private UdpClient udpClient;
+        private int chatPort = 8890; // arbitrary port for chat messages
+
+        public ChatManager(StackPanel container, MusicController musicController)
         {
-            messagesContainer = container;
-            musicController = musicCtrl;
+            this.messagesContainer = container;
+            this.musicController = musicController;
+            udpClient = new UdpClient(chatPort);
+            // Start listening for incoming messages.
+            Task.Run(() => ListenForMessages());
         }
 
-        public void SendMessage(string messageText, List<object> imageAttachments, List<string> audioAttachments, List<string> zipAttachments)
+        private async Task ListenForMessages()
         {
-            StackPanel messageOuterPanel = new StackPanel { Margin = new Thickness(5) };
-
-            // Audio attachments.
-            if (audioAttachments.Count > 0)
+            while (true)
             {
-                StackPanel audioOuterPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(5) };
-                foreach (var audio in audioAttachments)
+                try
                 {
-                    StackPanel sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(2) };
-                    Button audioButton = new Button { Content = "♫", Margin = new Thickness(2), Tag = audio };
-                    audioButton.Click += (s, args) =>
+                    UdpReceiveResult result = await udpClient.ReceiveAsync();
+                    string message = Encoding.UTF8.GetString(result.Buffer);
+
+                    // In a real app, you’d determine which chat session this belongs to,
+                    // and decrypt using the shared key. Here we simply display the plain text.
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        string file = (s as Button).Tag as string;
-                        PlayAudio(file);
-                    };
-                    TextBlock audioName = new TextBlock
-                    {
-                        Text = System.IO.Path.GetFileName(audio),
-                        Foreground = Brushes.White,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(5, 0, 0, 0)
-                    };
-                    sp.Children.Add(audioButton);
-                    sp.Children.Add(audioName);
-                    audioOuterPanel.Children.Add(sp);
+                        messagesContainer.Children.Add(new TextBlock
+                        {
+                            Text = $"Peer: {message}",
+                            Foreground = Brushes.LightGreen,
+                            Margin = new Thickness(5)
+                        });
+                    });
                 }
-                messageOuterPanel.Children.Add(audioOuterPanel);
-            }
-
-            // Zip attachments.
-            if (zipAttachments.Count > 0)
-            {
-                StackPanel zipOuterPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(5) };
-                foreach (var zip in zipAttachments)
+                catch (Exception ex)
                 {
-                    StackPanel sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(2) };
-                    Button zipButton = new Button { Content = "◘", Margin = new Thickness(2), Tag = zip };
-                    zipButton.Click += (s, args) =>
-                    {
-                        MessageBox.Show("Zip file: " + (s as Button).Tag.ToString());
-                    };
-                    TextBlock zipName = new TextBlock
-                    {
-                        Text = System.IO.Path.GetFileName(zip),
-                        Foreground = Brushes.White,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(5, 0, 0, 0)
-                    };
-                    sp.Children.Add(zipButton);
-                    sp.Children.Add(zipName);
-                    zipOuterPanel.Children.Add(sp);
+                    Console.WriteLine("Error receiving chat message: " + ex.Message);
                 }
-                messageOuterPanel.Children.Add(zipOuterPanel);
-            }
-
-            // Image attachments.
-            if (imageAttachments.Count > 0)
-            {
-                int picturesPerGroup = 8;
-                int groupCount = (int)System.Math.Ceiling((double)imageAttachments.Count / picturesPerGroup);
-                for (int group = 0; group < groupCount; group++)
-                {
-                    int startIndex = group * picturesPerGroup;
-                    int count = System.Math.Min(picturesPerGroup, imageAttachments.Count - startIndex);
-
-                    Border imageBubble = new Border
-                    {
-                        Background = Brushes.DarkGray,
-                        Margin = new Thickness(5),
-                        Padding = new Thickness(0),
-                        CornerRadius = new CornerRadius(10)
-                    };
-
-                    UniformGrid grid = new UniformGrid
-                    {
-                        Columns = (count <= 4) ? count : 4,
-                        Rows = (int)System.Math.Ceiling((double)count / ((count <= 4) ? count : 4)),
-                        Margin = new Thickness(0)
-                    };
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        var imgObj = imageAttachments[startIndex + i];
-                        Image imageControl = new Image
-                        {
-                            Stretch = Stretch.UniformToFill,
-                            Cursor = Cursors.Hand,
-                            Margin = new Thickness(0)
-                        };
-
-                        if (imgObj is string filePath)
-                        {
-                            try { imageControl.Source = new System.Windows.Media.Imaging.BitmapImage(new System.Uri(filePath)); } catch { }
-                        }
-                        else if (imgObj is ImageSource bmp)
-                        {
-                            imageControl.Source = bmp;
-                        }
-
-                        imageControl.MouseLeftButtonUp += (s, args) =>
-                        {
-                            List<ImageSource> sources = new List<ImageSource>();
-                            foreach (var child in grid.Children)
-                            {
-                                if (child is Image img && img.Source != null)
-                                    sources.Add(img.Source);
-                            }
-                            int selectedIndex = 0;
-                            for (int j = 0; j < grid.Children.Count; j++)
-                            {
-                                if (grid.Children[j] is Image img && img == s as Image)
-                                {
-                                    selectedIndex = j;
-                                    break;
-                                }
-                            }
-                            FullScreenImageViewer.Show(sources, selectedIndex);
-                        };
-
-                        grid.Children.Add(imageControl);
-                    }
-
-                    imageBubble.Child = grid;
-                    messageOuterPanel.Children.Add(imageBubble);
-                }
-            }
-
-            // Text message.
-            if (!string.IsNullOrWhiteSpace(messageText))
-            {
-                Border messageBubble = new Border
-                {
-                    Background = Brushes.White,
-                    Margin = new Thickness(5),
-                    Padding = new Thickness(5),
-                    CornerRadius = new CornerRadius(5)
-                };
-                TextBlock textBlock = new TextBlock
-                {
-                    Text = messageText,
-                    Foreground = Brushes.Black,
-                    Margin = new Thickness(5),
-                    TextWrapping = TextWrapping.Wrap
-                };
-                messageBubble.Child = textBlock;
-                messageOuterPanel.Children.Add(messageBubble);
-            }
-
-            if (messageOuterPanel.Children.Count > 0)
-            {
-                messagesContainer.Children.Add(messageOuterPanel);
             }
         }
 
-        private void PlayAudio(string file)
+        /// <summary>
+        /// Sends the given message (and attachments) to the currently active chat session.
+        /// </summary>
+        public void SendMessage(string message, List<string> imageAttachments, List<string> audioAttachments, List<string> zipAttachments)
         {
-            musicController.PlayMusicFromFile(file);
+            if (CurrentChatSession == null)
+            {
+                MessageBox.Show("No active chat session. Please select a user to chat with.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // In a real application, encrypt the message with CurrentChatSession.SharedKey.
+            byte[] plainBytes = Encoding.UTF8.GetBytes(message);
+
+            // Send the message to the peer's endpoint.
+            udpClient.Send(plainBytes, plainBytes.Length, CurrentChatSession.PeerEndpoint);
+
+            // Also display the message in the UI.
+            messagesContainer.Children.Add(new TextBlock
+            {
+                Text = $"Me: {message}",
+                Foreground = Brushes.White,
+                Margin = new Thickness(5)
+            });
         }
     }
 }
