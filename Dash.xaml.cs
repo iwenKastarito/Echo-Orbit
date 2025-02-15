@@ -49,15 +49,14 @@ namespace EchoOrbit
 
 
             // In Dash.xaml.cs (inside the constructor, after initializing peerDiscovery and connectionsControl)
-            peerDiscovery.PeerDiscovered += (endpoint, peerId) =>
+            peerDiscovery.PeerDiscovered += (endpoint, peerId, displayName, profileImageBase64) =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // Check if the user is already in the list.
+                    // Check if this peer is already in the list.
                     bool exists = false;
                     foreach (var user in connectionsControl.OnlineUsers)
                     {
-                        // Compare by IP address and port.
                         if (user.PeerEndpoint.Address.Equals(endpoint.Address))
                         {
                             exists = true;
@@ -66,16 +65,43 @@ namespace EchoOrbit
                     }
                     if (!exists)
                     {
-                        // Update the endpoint to use the chat port 8890.
+                        System.Windows.Media.Imaging.BitmapImage profileImage;
+                        if (!string.IsNullOrEmpty(profileImageBase64))
+                        {
+                            try
+                            {
+                                byte[] imageBytes = Convert.FromBase64String(profileImageBase64);
+                                using (var ms = new MemoryStream(imageBytes))
+                                {
+                                    profileImage = new System.Windows.Media.Imaging.BitmapImage();
+                                    profileImage.BeginInit();
+                                    profileImage.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                                    profileImage.StreamSource = ms;
+                                    profileImage.EndInit();
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // If conversion fails, fall back to a default image.
+                                profileImage = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute));
+                            }
+                        }
+                        else
+                        {
+                            profileImage = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute));
+                        }
+
                         connectionsControl.OnlineUsers.Add(new EchoOrbit.Controls.OnlineUser
                         {
-                            DisplayName = peerId,
+                            DisplayName = displayName,
+                            // Use port 8890 for chat messages.
                             PeerEndpoint = new IPEndPoint(endpoint.Address, 8890),
-                            ProfileImage = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute))
+                            ProfileImage = profileImage
                         });
                     }
                 });
             };
+
 
 
 
