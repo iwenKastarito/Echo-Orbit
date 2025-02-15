@@ -14,9 +14,12 @@ namespace LocalNetworkTest
         private string myId;
         private HashSet<string> discoveredPeers = new HashSet<string>();
 
+        // New event to notify when a peer is discovered.
+        public event Action<IPEndPoint, string> PeerDiscovered;
+
         public SimplePeerDiscovery()
         {
-            // Create a unique ID for this peer (you could also use the local IP, etc.)
+            // Create a unique ID for this peer.
             myId = Guid.NewGuid().ToString();
             // Initialize the UDP client.
             udpClient = new UdpClient();
@@ -30,9 +33,7 @@ namespace LocalNetworkTest
         /// </summary>
         public void Start()
         {
-            // Start the listening loop in a background task.
             Task.Run(() => ListenForBroadcasts());
-            // Immediately broadcast our presence.
             BroadcastPresence();
         }
 
@@ -76,6 +77,8 @@ namespace LocalNetworkTest
                     {
                         discoveredPeers.Add(peerId);
                         Console.WriteLine("Discovered new peer: " + peerId);
+                        // Fire the event to notify listeners.
+                        PeerDiscovered?.Invoke(remoteEP, peerId);
                         // Rebroadcast our presence so the new peer (and others) are aware.
                         BroadcastPresence();
                     }

@@ -20,33 +20,7 @@ namespace EchoOrbit.Controls
             DataContext = this;
 
             // Sample data for online users.
-            OnlineUsers = new ObservableCollection<OnlineUser>
-            {
-                new OnlineUser
-                {
-                    DisplayName = "Alice",
-                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
-                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
-                },
-                new OnlineUser
-                {
-                    DisplayName = "Bob",
-                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
-                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
-                },
-                new OnlineUser
-                {
-                    DisplayName = "Charlie",
-                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
-                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
-                },
-                new OnlineUser
-                {
-                    DisplayName = "David",
-                    ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
-                    PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
-                }
-            };
+            OnlineUsers = new ObservableCollection<OnlineUser>();
 
             // Initialize groups (empty at start).
             Groups = new ObservableCollection<Group>();

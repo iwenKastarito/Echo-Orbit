@@ -44,6 +44,36 @@ namespace EchoOrbit
             peerDiscovery = new SimplePeerDiscovery();
             peerDiscovery.Start();
 
+
+            // In Dash.xaml.cs (inside the constructor, after initializing peerDiscovery and connectionsControl)
+            peerDiscovery.PeerDiscovered += (endpoint, peerId) =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Check if the user is already in the list.
+                    bool exists = false;
+                    foreach (var user in connectionsControl.OnlineUsers)
+                    {
+                        if (user.PeerEndpoint.Equals(endpoint))
+                        {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists)
+                    {
+                        // Add the discovered peer. For now, we use the peerId as the display name.
+                        connectionsControl.OnlineUsers.Add(new EchoOrbit.Controls.OnlineUser
+                        {
+                            DisplayName = peerId,
+                            PeerEndpoint = endpoint,
+                            ProfileImage = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute))
+                        });
+                    }
+                });
+            };
+
+
             // Initialize ConnectionsControl.
             connectionsControl = new ConnectionsControl();
             // Subscribe to the chat-request event.
