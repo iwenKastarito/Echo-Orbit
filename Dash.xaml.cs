@@ -51,25 +51,24 @@ namespace EchoOrbit
                 // Use the profile display name.
                 peerDiscovery.DisplayName = profile.DisplayName;
 
-                // Convert the profile image to Base64 if it exists.
+                // Generate a thumbnail Base64 string for the profile image.
                 if (!string.IsNullOrEmpty(profile.ProfilePicturePath) && File.Exists(profile.ProfilePicturePath))
                 {
-                    byte[] imageBytes = File.ReadAllBytes(profile.ProfilePicturePath);
-                    peerDiscovery.ProfileImageBase64 = Convert.ToBase64String(imageBytes);
+                    // For example, generate a 64x64 thumbnail.
+                    peerDiscovery.ProfileImageBase64 = ImageHelper.GetThumbnailBase64(profile.ProfilePicturePath, 64, 64);
                 }
                 else
                 {
-                    // If no profile picture, leave empty so the receiver uses its default.
+                    // If no profile picture, leave it empty (so the receiver will use its default image).
                     peerDiscovery.ProfileImageBase64 = "";
                 }
             }
             else
             {
-                // Fallback values if no profile data exists.
+                // Fallback values.
                 peerDiscovery.DisplayName = "Echo";
                 peerDiscovery.ProfileImageBase64 = "";
             }
-            // ****************************************
 
             // Start peer discovery.
             peerDiscovery.Start();
