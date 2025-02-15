@@ -37,8 +37,10 @@ namespace LocalNetworkTest
             ProfileImageBase64 = "";
 
             udpClient = new UdpClient();
+            udpClient.Client.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket, System.Net.Sockets.SocketOptionName.ReuseAddress, true);
             udpClient.EnableBroadcast = true;
             udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, BroadcastPort));
+
         }
 
         public void Start()
