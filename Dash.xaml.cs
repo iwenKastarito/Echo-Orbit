@@ -45,6 +45,33 @@ namespace EchoOrbit
 
             // Initialize Peer Discovery.
             peerDiscovery = new SimplePeerDiscovery();
+            var profile = ProfileDataManager.LoadProfileData();
+            if (profile != null)
+            {
+                // Use the profile display name.
+                peerDiscovery.DisplayName = profile.DisplayName;
+
+                // Convert the profile image to Base64 if it exists.
+                if (!string.IsNullOrEmpty(profile.ProfilePicturePath) && File.Exists(profile.ProfilePicturePath))
+                {
+                    byte[] imageBytes = File.ReadAllBytes(profile.ProfilePicturePath);
+                    peerDiscovery.ProfileImageBase64 = Convert.ToBase64String(imageBytes);
+                }
+                else
+                {
+                    // If no profile picture, leave empty so the receiver uses its default.
+                    peerDiscovery.ProfileImageBase64 = "";
+                }
+            }
+            else
+            {
+                // Fallback values if no profile data exists.
+                peerDiscovery.DisplayName = "Echo";
+                peerDiscovery.ProfileImageBase64 = "";
+            }
+            // ****************************************
+
+            // Start peer discovery.
             peerDiscovery.Start();
 
 

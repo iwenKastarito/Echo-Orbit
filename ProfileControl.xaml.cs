@@ -54,8 +54,8 @@ namespace EchoOrbit.Controls
             }
             else
             {
-                DisplayNameTextBox.Text = "John Doe";
-                EmailTextBox.Text = "john.doe@example.com";
+                DisplayNameTextBox.Text = "Echo";
+                EmailTextBox.Text = "Default@example.com";
                 PasswordBox.Password = "hashed_password_example";
                 try
                 {
