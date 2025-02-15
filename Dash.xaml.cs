@@ -14,6 +14,9 @@ using System.Windows.Media.Animation;
 using EchoOrbit.Controls;
 using LocalNetworkTest;
 using LocalChatSecurity; // Contains SecurityManager
+using System.Net;
+
+
 
 namespace EchoOrbit
 {
@@ -54,7 +57,8 @@ namespace EchoOrbit
                     bool exists = false;
                     foreach (var user in connectionsControl.OnlineUsers)
                     {
-                        if (user.PeerEndpoint.Equals(endpoint))
+                        // Compare by IP address and port.
+                        if (user.PeerEndpoint.Address.Equals(endpoint.Address))
                         {
                             exists = true;
                             break;
@@ -62,16 +66,17 @@ namespace EchoOrbit
                     }
                     if (!exists)
                     {
-                        // Add the discovered peer. For now, we use the peerId as the display name.
+                        // Update the endpoint to use the chat port 8890.
                         connectionsControl.OnlineUsers.Add(new EchoOrbit.Controls.OnlineUser
                         {
                             DisplayName = peerId,
-                            PeerEndpoint = endpoint,
+                            PeerEndpoint = new IPEndPoint(endpoint.Address, 8890),
                             ProfileImage = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute))
                         });
                     }
                 });
             };
+
 
 
             // Initialize ConnectionsControl.
