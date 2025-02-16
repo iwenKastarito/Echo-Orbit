@@ -57,7 +57,7 @@ namespace EchoOrbit.Helpers
         private TcpListener tcpListener;
         private int chatPort = 8890; // fixed port for chat messages
 
-        // Threshold (in bytes) above which a file is sent via a separate TCP file transfer.
+        // Threshold (in bytes) above which a file is sent via TCP file transfer.
         private const long FileSizeThreshold = 100 * 1024; // e.g. 100 KB
 
         public ChatManager(StackPanel container, MusicController musicController)
@@ -105,17 +105,20 @@ namespace EchoOrbit.Helpers
                     }
                     catch (Exception)
                     {
-                        // If deserialization fails, treat the data as plain text.
+                        // If deserialization fails, treat data as plain text.
                     }
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         if (receivedMsg != null)
                         {
-                            // Display the text message in a bubble.
+                            // Create a text bubble for the message text.
                             messagesContainer.Children.Add(CreateTextBubble(
                                 $"{receivedMsg.SenderDisplayName}: {receivedMsg.Text}",
                                 Brushes.White,
                                 Brushes.SeaGreen));
+
+                            // Group inline image attachments.
+                            List<Image> inlineImages = new List<Image>();
 
                             if (receivedMsg.Attachments != null)
                             {
@@ -123,7 +126,7 @@ namespace EchoOrbit.Helpers
                                 {
                                     if (att.IsFileTransfer && (att.FileType == "audio" || att.FileType == "zip"))
                                     {
-                                        // Create clickable text to download the file.
+                                        // For file-transfer attachments, create clickable text to download.
                                         TextBlock downloadBlock = new TextBlock
                                         {
                                             Text = $"File '{att.FileName}' available. Click here to download.",
@@ -133,7 +136,6 @@ namespace EchoOrbit.Helpers
                                         };
                                         downloadBlock.MouseLeftButtonUp += (s, e) =>
                                         {
-                                            // Use the sender's IP from the client socket.
                                             DownloadFile(att, ((IPEndPoint)client.Client.RemoteEndPoint).Address);
                                         };
                                         messagesContainer.Children.Add(downloadBlock);
@@ -157,7 +159,7 @@ namespace EchoOrbit.Helpers
                                                     Height = 100,
                                                     Margin = new Thickness(5)
                                                 };
-                                                messagesContainer.Children.Add(img);
+                                                inlineImages.Add(img);
                                             }
                                         }
                                         catch (Exception ex)
@@ -167,12 +169,18 @@ namespace EchoOrbit.Helpers
                                     }
                                     else
                                     {
+                                        // For non-image inline attachments.
                                         messagesContainer.Children.Add(CreateTextBubble(
                                             $"Attachment: {att.FileName} ({att.FileType})",
                                             Brushes.White,
                                             Brushes.Gray));
                                     }
                                 }
+                            }
+                            // If we collected any inline images, group them in one image bubble.
+                            if (inlineImages.Count > 0)
+                            {
+                                messagesContainer.Children.Add(CreateImageBubble(inlineImages));
                             }
                         }
                         else
@@ -241,7 +249,6 @@ namespace EchoOrbit.Helpers
                         FileInfo fi = new FileInfo(path);
                         if (fi.Length > FileSizeThreshold)
                         {
-                            // For large audio files, use TCP file transfer.
                             int port = StartTcpFileTransfer(path);
                             chatMessage.Attachments.Add(new Attachment
                             {
@@ -329,26 +336,64 @@ namespace EchoOrbit.Helpers
                 MessageBox.Show("Error sending message: " + ex.Message);
             }
 
+            // Update UI for outgoing message.
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // Display outgoing message in a bubble.
                 messagesContainer.Children.Add(CreateTextBubble(
                     $"Me: {message}",
                     Brushes.White,
                     Brushes.DodgerBlue));
 
+                // Group outgoing inline image attachments.
+                List<Image> outgoingImages = new List<Image>();
+                List<string> nonImageAttachments = new List<string>();
                 if (chatMessage.Attachments != null)
                 {
                     foreach (var att in chatMessage.Attachments)
                     {
-                        string attInfo = att.IsFileTransfer
-                            ? $"{att.FileName} ({att.FileType}) - Transfer on port {att.TransferPort}"
-                            : $"{att.FileName} ({att.FileType})";
-                        messagesContainer.Children.Add(CreateTextBubble(
-                            "Attachment: " + attInfo,
-                            Brushes.White,
-                            Brushes.DodgerBlue));
+                        if (att.FileType == "image" && !att.IsFileTransfer)
+                        {
+                            try
+                            {
+                                byte[] imageBytes = Convert.FromBase64String(att.ContentBase64);
+                                using (var msImg = new MemoryStream(imageBytes))
+                                {
+                                    BitmapImage bmp = new BitmapImage();
+                                    bmp.BeginInit();
+                                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                                    bmp.StreamSource = msImg;
+                                    bmp.EndInit();
+                                    Image img = new Image
+                                    {
+                                        Source = bmp,
+                                        Width = 100,
+                                        Height = 100,
+                                        Margin = new Thickness(5)
+                                    };
+                                    outgoingImages.Add(img);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Error displaying outgoing image: " + ex.Message);
+                            }
+                        }
+                        else
+                        {
+                            string info = att.IsFileTransfer
+                                ? $"{att.FileName} ({att.FileType}) - Transfer on port {att.TransferPort}"
+                                : $"{att.FileName} ({att.FileType})";
+                            nonImageAttachments.Add("Attachment: " + info);
+                        }
                     }
+                }
+                if (outgoingImages.Count > 0)
+                {
+                    messagesContainer.Children.Add(CreateImageBubble(outgoingImages));
+                }
+                foreach (var info in nonImageAttachments)
+                {
+                    messagesContainer.Children.Add(CreateTextBubble(info, Brushes.White, Brushes.DodgerBlue));
                 }
             });
         }
@@ -366,7 +411,8 @@ namespace EchoOrbit.Helpers
             {
                 Text = text,
                 Foreground = foreground,
-                TextWrapping = TextWrapping.Wrap
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(5)
             };
             Border bubble = new Border
             {
@@ -375,6 +421,33 @@ namespace EchoOrbit.Helpers
                 Padding = new Thickness(10),
                 Margin = new Thickness(5),
                 Child = tb
+            };
+            return bubble;
+        }
+
+        /// <summary>
+        /// Creates an image bubble that groups multiple images in a single container.
+        /// </summary>
+        /// <param name="images">A list of Image controls.</param>
+        /// <returns>A Border element containing a WrapPanel with the images.</returns>
+        private Border CreateImageBubble(List<Image> images)
+        {
+            WrapPanel panel = new WrapPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(5)
+            };
+            foreach (var img in images)
+            {
+                panel.Children.Add(img);
+            }
+            Border bubble = new Border
+            {
+                Background = Brushes.LightGray,
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(10),
+                Margin = new Thickness(5),
+                Child = panel
             };
             return bubble;
         }
