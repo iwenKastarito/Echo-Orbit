@@ -180,7 +180,7 @@ namespace EchoOrbit.Helpers
                             // If we collected any inline images, group them in one image bubble.
                             if (inlineImages.Count > 0)
                             {
-                                messagesContainer.Children.Add(CreateImageBubble(inlineImages));
+                                messagesContainer.Children.Add(CreateImageBubble(inlineImages, Brushes.SeaGreen));
                             }
                         }
                         else
@@ -389,7 +389,7 @@ namespace EchoOrbit.Helpers
                 }
                 if (outgoingImages.Count > 0)
                 {
-                    messagesContainer.Children.Add(CreateImageBubble(outgoingImages));
+                    messagesContainer.Children.Add(CreateImageBubble(outgoingImages, Brushes.DodgerBlue));
                 }
                 foreach (var info in nonImageAttachments)
                 {
@@ -430,17 +430,19 @@ namespace EchoOrbit.Helpers
         /// </summary>
         /// <param name="images">A list of Image controls.</param>
         /// <returns>A Border element containing a WrapPanel with the images.</returns>
-        private Border CreateImageBubble(List<Image> images)
+        /// <summary>
+        /// Creates an image bubble that arranges up to 8 images in a grid with no extra margin.
+        /// For 1–4 images, a single row is used. For 5–8, two rows are used.
+        /// The entire bubble is filled by the images (no visible background),
+        /// and the bubble's background color is set via the parameter.
+        /// </summary>
+        /// <param name="images">A list of Image controls (each with no margin set).</param>
+        /// <param name="bubbleBackground">The background brush for the bubble.</param>
+        /// <returns>A Border element containing the arranged images.</returns>
+        private Border CreateImageBubble(List<Image> images, Brush bubbleBackground)
         {
-            // Determine the number of levels needed for a binary-tree-like layout.
-            int levels = 0;
-            int count = images.Count;
-            while ((Math.Pow(2, levels) - 1) < count)
-            {
-                levels++;
-            }
-
-            // Create a vertical StackPanel to hold each row.
+            int n = images.Count;
+            // Create a vertical container
             StackPanel verticalPanel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
@@ -448,63 +450,82 @@ namespace EchoOrbit.Helpers
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            int index = 0;
-            for (int level = 0; level < levels; level++)
+            if (n <= 4)
             {
-                // Determine how many images go in this row.
-                int imagesInRow = (int)Math.Pow(2, level);
-                // But if fewer remain, use the remaining count.
-                if (index + imagesInRow > images.Count)
-                    imagesInRow = images.Count - index;
-
-                // Create a Grid with the number of columns equal to imagesInRow.
-                Grid rowGrid = new Grid
+                // Single row: create a grid with n columns
+                Grid grid = new Grid();
+                for (int i = 0; i < n; i++)
                 {
-                    HorizontalAlignment = HorizontalAlignment.Stretch
-                };
-
-                for (int i = 0; i < imagesInRow; i++)
+                    grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+                }
+                for (int i = 0; i < n; i++)
                 {
-                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition
-                    {
-                        Width = new GridLength(1, GridUnitType.Star)
-                    });
+                    Image img = images[i];
+                    img.Margin = new Thickness(0);
+                    img.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    img.VerticalAlignment = VerticalAlignment.Stretch;
+                    img.Stretch = Stretch.UniformToFill;
+                    Grid.SetColumn(img, i);
+                    grid.Children.Add(img);
+                }
+                verticalPanel.Children.Add(grid);
+            }
+            else if (n <= 8)
+            {
+                // Two rows: split the images evenly
+                int row1Count = (int)Math.Ceiling(n / 2.0);
+                int row2Count = n - row1Count;
+
+                // First row
+                Grid grid1 = new Grid();
+                for (int i = 0; i < row1Count; i++)
+                {
+                    grid1.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+                }
+                for (int i = 0; i < row1Count; i++)
+                {
+                    Image img = images[i];
+                    img.Margin = new Thickness(0);
+                    img.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    img.VerticalAlignment = VerticalAlignment.Stretch;
+                    img.Stretch = Stretch.UniformToFill;
+                    Grid.SetColumn(img, i);
+                    grid1.Children.Add(img);
                 }
 
-                // Optionally, you can set a fixed height for the first row and a smaller height for subsequent rows.
-                // For example: rowGrid.Height = (level == 0) ? 200 : 100;
-                // Here, we'll let the Grid auto-size so that images fill the available space.
-                rowGrid.Height = Double.NaN;
-
-                for (int col = 0; col < imagesInRow; col++)
+                // Second row
+                Grid grid2 = new Grid();
+                for (int i = 0; i < row2Count; i++)
                 {
-                    if (index < images.Count)
-                    {
-                        Image img = images[index];
-                        // Remove any margin so the image fills the cell.
-                        img.Margin = new Thickness(0);
-                        img.Stretch = Stretch.UniformToFill;
-                        Grid.SetColumn(img, col);
-                        rowGrid.Children.Add(img);
-                        index++;
-                    }
+                    grid2.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
                 }
-                verticalPanel.Children.Add(rowGrid);
+                for (int i = 0; i < row2Count; i++)
+                {
+                    Image img = images[row1Count + i];
+                    img.Margin = new Thickness(0);
+                    img.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    img.VerticalAlignment = VerticalAlignment.Stretch;
+                    img.Stretch = Stretch.UniformToFill;
+                    Grid.SetColumn(img, i);
+                    grid2.Children.Add(img);
+                }
+
+                verticalPanel.Children.Add(grid1);
+                verticalPanel.Children.Add(grid2);
             }
 
-            // Create a Border (the bubble) with the same background as a text bubble.
+            // Wrap the layout in a Border. Set padding = 0 so the images fill the bubble.
             Border bubble = new Border
             {
-                Background = Brushes.DodgerBlue,  // Change this to match your text bubble background.
-                BorderBrush = Brushes.Gray,
-                BorderThickness = new Thickness(1),
+                Background = bubbleBackground,
+                Padding = new Thickness(0),
+                Margin = new Thickness(5),
                 CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(5),
                 Child = verticalPanel
             };
-
             return bubble;
         }
+
 
         /// <summary>
         /// Starts a TCP file transfer for the given file.
