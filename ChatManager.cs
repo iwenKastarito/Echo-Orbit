@@ -265,21 +265,39 @@ namespace EchoOrbit.Helpers
                 }
             }
 
-            // Process zip attachments (similar logic can be applied if needed).
+            // Process zip attachments.
             foreach (var path in zipAttachments)
             {
                 if (File.Exists(path))
                 {
                     try
                     {
-                        byte[] fileBytes = File.ReadAllBytes(path);
-                        chatMessage.Attachments.Add(new Attachment
+                        FileInfo fi = new FileInfo(path);
+                        if (fi.Length > FileSizeThreshold)
                         {
-                            FileName = Path.GetFileName(path),
-                            FileType = "zip",
-                            ContentBase64 = Convert.ToBase64String(fileBytes),
-                            IsFileTransfer = false
-                        });
+                            // For large zip files, start a TCP file transfer.
+                            int port = StartTcpFileTransfer(path);
+                            chatMessage.Attachments.Add(new Attachment
+                            {
+                                FileName = Path.GetFileName(path),
+                                FileType = "zip",
+                                IsFileTransfer = true,
+                                TransferPort = port,
+                                ContentBase64 = "" // Not sending inline.
+                            });
+                        }
+                        else
+                        {
+                            // For small zip files, send inline.
+                            byte[] fileBytes = File.ReadAllBytes(path);
+                            chatMessage.Attachments.Add(new Attachment
+                            {
+                                FileName = Path.GetFileName(path),
+                                FileType = "zip",
+                                ContentBase64 = Convert.ToBase64String(fileBytes),
+                                IsFileTransfer = false
+                            });
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -287,6 +305,7 @@ namespace EchoOrbit.Helpers
                     }
                 }
             }
+
 
             // Serialize the chat message to JSON.
             string json = JsonSerializer.Serialize(chatMessage);
