@@ -432,22 +432,66 @@ namespace EchoOrbit.Helpers
         /// <returns>A Border element containing a WrapPanel with the images.</returns>
         private Border CreateImageBubble(List<Image> images)
         {
-            WrapPanel panel = new WrapPanel
+            // Determine how many levels are needed for a complete binary tree.
+            int levels = 0;
+            while (Math.Pow(2, levels) - 1 < images.Count)
             {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(5)
-            };
-            foreach (var img in images)
-            {
-                panel.Children.Add(img);
+                levels++;
             }
+
+            // Create a vertical StackPanel to hold each level.
+            StackPanel verticalPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+
+            int index = 0;
+            for (int level = 0; level < levels; level++)
+            {
+                int nodesThisLevel = (int)Math.Pow(2, level);
+
+                // Create a Grid for this level with the required number of columns.
+                Grid levelGrid = new Grid
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+                for (int i = 0; i < nodesThisLevel; i++)
+                {
+                    levelGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                }
+
+                // Set the height of each level.
+                // For example, level 0 (the top) is larger.
+                double rowHeight = (level == 0) ? 200 : 100; // adjust as needed
+                levelGrid.Height = rowHeight;
+
+                for (int col = 0; col < nodesThisLevel; col++)
+                {
+                    if (index < images.Count)
+                    {
+                        Image img = images[index];
+                        // Ensure the image fills its cell.
+                        img.Stretch = Stretch.UniformToFill;
+                        // Optionally, remove margins so the images fill the bubble.
+                        img.Margin = new Thickness(1);
+                        Grid.SetColumn(img, col);
+                        levelGrid.Children.Add(img);
+                        index++;
+                    }
+                }
+                verticalPanel.Children.Add(levelGrid);
+            }
+
+            // Wrap the vertical panel in a Border that represents the image bubble.
             Border bubble = new Border
             {
-                Background = Brushes.LightGray,
+                BorderBrush = Brushes.Gray,
+                BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(10),
-                Margin = new Thickness(5),
-                Child = panel
+                Padding = new Thickness(5),
+                Child = verticalPanel
             };
             return bubble;
         }
