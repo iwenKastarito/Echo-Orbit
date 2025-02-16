@@ -185,7 +185,6 @@ namespace EchoOrbit.Helpers
                                 {
                                     int count = Math.Min(chunkSize, inlineImages.Count - i);
                                     List<Image> chunk = inlineImages.GetRange(i, count);
-                                    // For incoming messages, you might use a background like SeaGreen:
                                     messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.SeaGreen));
                                 }
                             }
@@ -403,7 +402,6 @@ namespace EchoOrbit.Helpers
                     {
                         int count = Math.Min(chunkSize, outgoingImages.Count - i);
                         List<Image> chunk = outgoingImages.GetRange(i, count);
-                        // For outgoing messages, you might use a background like DodgerBlue:
                         messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.DodgerBlue));
                     }
                 }
@@ -443,15 +441,11 @@ namespace EchoOrbit.Helpers
             return bubble;
         }
 
-        /// <summary>
-        /// Creates an image bubble that arranges up to 8 images in a grid with no extra margin.
-        /// For 1–4 images, a single row is used. For 5–8, two rows are used.
-        /// The entire bubble is filled by the images (no visible gaps), and the bubble's background color
-        /// is set via the parameter. The bubble always has round corners.
+        
         /// </summary>
-        /// <param name="images">A list of Image controls (each with no margin set).</param>
-        /// <param name="bubbleBackground">The background brush for the bubble.</param>
-        /// <returns>A Border element containing the arranged images.</returns>
+        /// <param name="images">A list of Image controls (their Margin will be set to zero and alignment to Stretch).</param>
+        /// <param name="bubbleBackground">The background Brush for the bubble.</param>
+        /// <returns>A Border element with rounded corners containing the arranged images.</returns>
         private Border CreateImageBubble(List<Image> images, Brush bubbleBackground)
         {
             int n = images.Count;
@@ -465,11 +459,17 @@ namespace EchoOrbit.Helpers
 
             if (n <= 4)
             {
-                // Single row: create a grid with n columns
-                Grid grid = new Grid();
+                // Single row: create a Grid with 1 row and n columns.
+                Grid grid = new Grid
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+                // Add one row definition that fills available space.
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < n; i++)
                 {
-                    grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 }
                 for (int i = 0; i < n; i++)
                 {
@@ -478,6 +478,7 @@ namespace EchoOrbit.Helpers
                     img.HorizontalAlignment = HorizontalAlignment.Stretch;
                     img.VerticalAlignment = VerticalAlignment.Stretch;
                     img.Stretch = Stretch.UniformToFill;
+                    Grid.SetRow(img, 0);
                     Grid.SetColumn(img, i);
                     grid.Children.Add(img);
                 }
@@ -485,15 +486,21 @@ namespace EchoOrbit.Helpers
             }
             else if (n <= 8)
             {
-                // Two rows: split the images evenly.
+                // Two rows: split the images into two rows.
                 int row1Count = (int)Math.Ceiling(n / 2.0);
                 int row2Count = n - row1Count;
 
-                // First row.
-                Grid grid1 = new Grid();
+                // First row Grid.
+                Grid grid1 = new Grid
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+                // One row that stretches.
+                grid1.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < row1Count; i++)
                 {
-                    grid1.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+                    grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 }
                 for (int i = 0; i < row1Count; i++)
                 {
@@ -502,15 +509,21 @@ namespace EchoOrbit.Helpers
                     img.HorizontalAlignment = HorizontalAlignment.Stretch;
                     img.VerticalAlignment = VerticalAlignment.Stretch;
                     img.Stretch = Stretch.UniformToFill;
+                    Grid.SetRow(img, 0);
                     Grid.SetColumn(img, i);
                     grid1.Children.Add(img);
                 }
 
-                // Second row.
-                Grid grid2 = new Grid();
+                // Second row Grid.
+                Grid grid2 = new Grid
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+                grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < row2Count; i++)
                 {
-                    grid2.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+                    grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 }
                 for (int i = 0; i < row2Count; i++)
                 {
@@ -519,27 +532,31 @@ namespace EchoOrbit.Helpers
                     img.HorizontalAlignment = HorizontalAlignment.Stretch;
                     img.VerticalAlignment = VerticalAlignment.Stretch;
                     img.Stretch = Stretch.UniformToFill;
+                    Grid.SetRow(img, 0);
                     Grid.SetColumn(img, i);
                     grid2.Children.Add(img);
                 }
+
                 verticalPanel.Children.Add(grid1);
                 verticalPanel.Children.Add(grid2);
             }
 
-            // Create a Border that wraps the vertical panel.
+            // Wrap the vertical panel in a Border.
             Border bubble = new Border
             {
                 Background = bubbleBackground,
                 Padding = new Thickness(0),
                 Margin = new Thickness(5),
-                // Set a round corner radius (adjust the value as desired)
                 CornerRadius = new CornerRadius(15),
                 Child = verticalPanel,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
                 SnapsToDevicePixels = true
             };
 
             return bubble;
         }
+
 
 
 
