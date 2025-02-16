@@ -180,8 +180,16 @@ namespace EchoOrbit.Helpers
                             // If we collected any inline images, group them in one image bubble.
                             if (inlineImages.Count > 0)
                             {
-                                messagesContainer.Children.Add(CreateImageBubble(inlineImages, Brushes.SeaGreen));
+                                int chunkSize = 8;
+                                for (int i = 0; i < inlineImages.Count; i += chunkSize)
+                                {
+                                    int count = Math.Min(chunkSize, inlineImages.Count - i);
+                                    List<Image> chunk = inlineImages.GetRange(i, count);
+                                    // Assuming received messages use SeaGreen as the bubble background.
+                                    messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.SeaGreen));
+                                }
                             }
+
                         }
                         else
                         {
@@ -389,8 +397,16 @@ namespace EchoOrbit.Helpers
                 }
                 if (outgoingImages.Count > 0)
                 {
-                    messagesContainer.Children.Add(CreateImageBubble(outgoingImages, Brushes.DodgerBlue));
+                    int chunkSize = 8;
+                    for (int i = 0; i < outgoingImages.Count; i += chunkSize)
+                    {
+                        int count = Math.Min(chunkSize, outgoingImages.Count - i);
+                        List<Image> chunk = outgoingImages.GetRange(i, count);
+                        // Assuming outgoing messages use DodgerBlue as the bubble background.
+                        messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.DodgerBlue));
+                    }
                 }
+
                 foreach (var info in nonImageAttachments)
                 {
                     messagesContainer.Children.Add(CreateTextBubble(info, Brushes.White, Brushes.DodgerBlue));
