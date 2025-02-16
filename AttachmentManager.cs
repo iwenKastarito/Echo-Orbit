@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -10,6 +11,9 @@ namespace EchoOrbit
         public List<object> ImageAttachments { get; private set; } = new List<object>();
         public List<string> AudioAttachments { get; private set; } = new List<string>();
         public List<string> ZipAttachments { get; private set; } = new List<string>();
+        public IPAddress SenderIP { get; set; }
+
+
 
         private StackPanel attachmentsSummaryPanel;
         private Border imageIndicator;
@@ -18,6 +22,8 @@ namespace EchoOrbit
         private TextBlock audioCount;
         private Border zipIndicator;
         private TextBlock zipCount;
+
+
 
         public AttachmentManager(StackPanel summaryPanel, Border imgIndicator, TextBlock imgCount,
             Border audioIndicator, TextBlock audioCount, Border zipIndicator, TextBlock zipCount)

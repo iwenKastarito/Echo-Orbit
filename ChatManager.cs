@@ -1,6 +1,8 @@
 ﻿using EchoOrbit.Controls;
+using EchoOrbit.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -92,6 +94,9 @@ namespace EchoOrbit.Helpers
         {
             try
             {
+                // Get the sender's endpoint from the client.
+                IPEndPoint senderEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
+
                 using (client)
                 using (NetworkStream ns = client.GetStream())
                 using (MemoryStream ms = new MemoryStream())
@@ -137,7 +142,7 @@ namespace EchoOrbit.Helpers
                                         };
                                         downloadBlock.MouseLeftButtonUp += (s, e) =>
                                         {
-                                            DownloadFile(att, ((IPEndPoint)client.Client.RemoteEndPoint).Address);
+                                            DownloadFile(att, senderEndpoint.Address);
                                         };
                                         messagesContainer.Children.Add(downloadBlock);
                                     }
@@ -168,6 +173,12 @@ namespace EchoOrbit.Helpers
                                             Console.WriteLine("Error displaying image: " + ex.Message);
                                         }
                                     }
+                                    else if (att.FileType == "audio")
+                                    {
+                                        // Create an audio bubble for the audio attachment.
+                                        Border audioBubble = CreateAudioBubble(att, senderEndpoint.Address, Brushes.SeaGreen);
+                                        messagesContainer.Children.Add(audioBubble);
+                                    }
                                     else
                                     {
                                         // For non-image inline attachments.
@@ -189,9 +200,6 @@ namespace EchoOrbit.Helpers
                                     messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.SeaGreen));
                                 }
                             }
-
-
-
                         }
                         else
                         {
@@ -208,6 +216,7 @@ namespace EchoOrbit.Helpers
                 Console.WriteLine("Error processing TCP client: " + ex.Message);
             }
         }
+
 
         /// <summary>
         /// Sends a chat message with attachments using TCP.
@@ -387,6 +396,12 @@ namespace EchoOrbit.Helpers
                             {
                                 Console.WriteLine("Error displaying outgoing image: " + ex.Message);
                             }
+                        }
+                        else if (att.FileType == "audio")
+                        {
+                            // For outgoing messages, use IPAddress.Loopback as the sender is local.
+                            Border audioBubble = CreateAudioBubble(att, IPAddress.Loopback, Brushes.DodgerBlue);
+                            messagesContainer.Children.Add(audioBubble);
                         }
                         else
                         {
@@ -603,6 +618,106 @@ namespace EchoOrbit.Helpers
         }
 
 
+        // Asynchronous method to download an audio file via TCP.
+        private async Task<string> DownloadAudioFileAsync(Attachment att, IPAddress senderIP)
+        {
+            string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), att.FileName);
+            try
+            {
+                using (TcpClient tcpClient = new TcpClient())
+                {
+                    await tcpClient.ConnectAsync(senderIP, att.TransferPort);
+                    using (NetworkStream ns = tcpClient.GetStream())
+                    using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                    {
+                        await ns.CopyToAsync(fs);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error downloading audio file: " + ex.Message);
+                return "";
+            }
+            return filePath;
+        }
+
+        // Synchronously saves an inline (Base64) audio file to a temporary location.
+        private string SaveAudioFromBase64(string base64, string fileName)
+        {
+            string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), fileName);
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(base64);
+                System.IO.File.WriteAllBytes(filePath, bytes);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error saving audio file: " + ex.Message);
+                return "";
+            }
+            return filePath;
+        }
+
+
+        private Border CreateAudioBubble(Attachment att, IPAddress senderIP, Brush bubbleBackground)
+        {
+            Button playButton = new Button
+            {
+                Content = "♫",
+                FontSize = 48,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Foreground = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            // Store the attachment and senderIP in the Tag for use in the click handler.
+            playButton.Tag = new Tuple<Attachment, IPAddress>(att, senderIP);
+            playButton.Click += async (s, e) =>
+            {
+                var tuple = (Tuple<Attachment, IPAddress>)playButton.Tag;
+                var attachment = tuple.Item1;
+                var ip = tuple.Item2;
+                string filePath = "";
+                if (attachment.IsFileTransfer)
+                {
+                    filePath = await DownloadAudioFileAsync(attachment, ip);
+                }
+                else
+                {
+                    filePath = SaveAudioFromBase64(attachment.ContentBase64, attachment.FileName);
+                }
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    // Create a Song object from the file.
+                    Song song = new Song { FilePath = filePath, Title = attachment.FileName };
+                    // If no playlist exists, create one.
+                    if (musicController.CurrentPlaylist == null)
+                    {
+                        musicController.CurrentPlaylist = new ObservableCollection<Song>();
+                    }
+                    // Add the song to the playlist.
+                    musicController.CurrentPlaylist.Add(song);
+                    // Set the playlist index to the last song added.
+                    musicController.CurrentPlaylistIndex = musicController.CurrentPlaylist.Count - 1;
+                    // Play the song.
+                    musicController.PlayMusicFromFile(filePath);
+                }
+            };
+
+            Border bubble = new Border
+            {
+                Background = bubbleBackground,
+                Padding = new Thickness(10),
+                Margin = new Thickness(5),
+                CornerRadius = new CornerRadius(15),
+                Child = playButton,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            return bubble;
+        }
 
 
         /// <summary>
