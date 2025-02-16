@@ -111,19 +111,19 @@ namespace EchoOrbit.Helpers
                     {
                         if (receivedMsg != null)
                         {
-                            messagesContainer.Children.Add(new TextBlock
-                            {
-                                Text = $"{receivedMsg.SenderDisplayName}: {receivedMsg.Text}",
-                                Foreground = Brushes.LightGreen,
-                                Margin = new Thickness(5)
-                            });
+                            // Display the text message in a bubble.
+                            messagesContainer.Children.Add(CreateTextBubble(
+                                $"{receivedMsg.SenderDisplayName}: {receivedMsg.Text}",
+                                Brushes.White,
+                                Brushes.SeaGreen));
+
                             if (receivedMsg.Attachments != null)
                             {
                                 foreach (var att in receivedMsg.Attachments)
                                 {
                                     if (att.IsFileTransfer && (att.FileType == "audio" || att.FileType == "zip"))
                                     {
-                                        // For file-transfer attachments, create a clickable UI element.
+                                        // Create clickable text to download the file.
                                         TextBlock downloadBlock = new TextBlock
                                         {
                                             Text = $"File '{att.FileName}' available. Click here to download.",
@@ -167,24 +167,20 @@ namespace EchoOrbit.Helpers
                                     }
                                     else
                                     {
-                                        messagesContainer.Children.Add(new TextBlock
-                                        {
-                                            Text = $"Attachment: {att.FileName} ({att.FileType})",
-                                            Foreground = Brushes.LightGray,
-                                            Margin = new Thickness(5)
-                                        });
+                                        messagesContainer.Children.Add(CreateTextBubble(
+                                            $"Attachment: {att.FileName} ({att.FileType})",
+                                            Brushes.White,
+                                            Brushes.Gray));
                                     }
                                 }
                             }
                         }
                         else
                         {
-                            messagesContainer.Children.Add(new TextBlock
-                            {
-                                Text = $"Peer: {json}",
-                                Foreground = Brushes.LightGreen,
-                                Margin = new Thickness(5)
-                            });
+                            messagesContainer.Children.Add(CreateTextBubble(
+                                $"Peer: {json}",
+                                Brushes.White,
+                                Brushes.SeaGreen));
                         }
                     });
                 }
@@ -207,7 +203,7 @@ namespace EchoOrbit.Helpers
             }
             ChatMessage chatMessage = new ChatMessage
             {
-                SenderDisplayName = "Me", // Replace with the actual sender's display name if available.
+                SenderDisplayName = "Me", // Replace with actual sender's display name if available.
                 Text = message,
                 Attachments = new List<Attachment>()
             };
@@ -245,7 +241,7 @@ namespace EchoOrbit.Helpers
                         FileInfo fi = new FileInfo(path);
                         if (fi.Length > FileSizeThreshold)
                         {
-                            // For large audio files (or multiple attachments), use TCP file transfer.
+                            // For large audio files, use TCP file transfer.
                             int port = StartTcpFileTransfer(path);
                             chatMessage.Attachments.Add(new Attachment
                             {
@@ -335,12 +331,12 @@ namespace EchoOrbit.Helpers
 
             Application.Current.Dispatcher.Invoke(() =>
             {
-                messagesContainer.Children.Add(new TextBlock
-                {
-                    Text = $"Me: {message}",
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(5)
-                });
+                // Display outgoing message in a bubble.
+                messagesContainer.Children.Add(CreateTextBubble(
+                    $"Me: {message}",
+                    Brushes.White,
+                    Brushes.DodgerBlue));
+
                 if (chatMessage.Attachments != null)
                 {
                     foreach (var att in chatMessage.Attachments)
@@ -348,21 +344,44 @@ namespace EchoOrbit.Helpers
                         string attInfo = att.IsFileTransfer
                             ? $"{att.FileName} ({att.FileType}) - Transfer on port {att.TransferPort}"
                             : $"{att.FileName} ({att.FileType})";
-                        messagesContainer.Children.Add(new TextBlock
-                        {
-                            Text = "Attachment: " + attInfo,
-                            Foreground = Brushes.White,
-                            Margin = new Thickness(5)
-                        });
+                        messagesContainer.Children.Add(CreateTextBubble(
+                            "Attachment: " + attInfo,
+                            Brushes.White,
+                            Brushes.DodgerBlue));
                     }
                 }
             });
         }
 
         /// <summary>
+        /// Creates a text bubble (a Border containing a TextBlock) for displaying a message.
+        /// </summary>
+        /// <param name="text">The message text.</param>
+        /// <param name="foreground">The text color.</param>
+        /// <param name="background">The bubble background color.</param>
+        /// <returns>A Border element styled as a text bubble.</returns>
+        private Border CreateTextBubble(string text, Brush foreground, Brush background)
+        {
+            TextBlock tb = new TextBlock
+            {
+                Text = text,
+                Foreground = foreground,
+                TextWrapping = TextWrapping.Wrap
+            };
+            Border bubble = new Border
+            {
+                Background = background,
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(10),
+                Margin = new Thickness(5),
+                Child = tb
+            };
+            return bubble;
+        }
+
+        /// <summary>
         /// Starts a TCP file transfer for the given file.
-        /// This method uses a TcpListener on a free port and streams the file.
-        /// It supports very large files (up to 500 MB or more).
+        /// Streams the file so that large files (up to 500 MB or more) can be transferred.
         /// Returns the port number for the transfer.
         /// </summary>
         private int StartTcpFileTransfer(string filePath)
