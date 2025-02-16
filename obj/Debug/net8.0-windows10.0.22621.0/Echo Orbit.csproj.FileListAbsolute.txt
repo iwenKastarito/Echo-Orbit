@@ -52,3 +52,5 @@ C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.2
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit.pdb
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\Echo Orbit.genruntimeconfig.cache
 C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ref\Echo Orbit.dll
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ImageFocusWindow.baml
+C:\Users\iwen2\source\repos\Echo Orbit\Echo Orbit\obj\Debug\net8.0-windows10.0.22621.0\ImageFocusWindow.g.cs

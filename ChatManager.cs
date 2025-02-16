@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EchoOrbit.Controls;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -467,7 +468,6 @@ namespace EchoOrbit.Helpers
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
-                // Add one row definition that fills available space.
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < n; i++)
                 {
@@ -480,12 +480,26 @@ namespace EchoOrbit.Helpers
                     img.HorizontalAlignment = HorizontalAlignment.Stretch;
                     img.VerticalAlignment = VerticalAlignment.Stretch;
                     img.Stretch = Stretch.UniformToFill;
+
+                    // Attach event handler to open focus window.
+                    img.MouseLeftButtonUp += (s, e) =>
+                    {
+                        // Create a list of ImageSource objects from the entire 'images' list (the current bubble)
+                        List<ImageSource> bubbleImageSources = images.Select(i => i.Source).ToList();
+                        // Get the index of the clicked image.
+                        int clickedIndex = bubbleImageSources.IndexOf(img.Source);
+                        // Open the focus window passing the list and the clicked index.
+                        var focusWindow = new ImageFocusWindow(bubbleImageSources, clickedIndex);
+                        focusWindow.ShowDialog();
+                    };
+
                     Grid.SetRow(img, 0);
                     Grid.SetColumn(img, i);
                     grid.Children.Add(img);
                 }
                 verticalPanel.Children.Add(grid);
             }
+
             else if (n <= 8)
             {
                 // Two rows: split the images into two rows.
@@ -510,6 +524,17 @@ namespace EchoOrbit.Helpers
                     img.HorizontalAlignment = HorizontalAlignment.Stretch;
                     img.VerticalAlignment = VerticalAlignment.Stretch;
                     img.Stretch = Stretch.UniformToFill;
+
+                    // Attach event handler for focus.
+                    img.MouseLeftButtonUp += (s, e) =>
+                    {
+                        // Here, use the whole images list (from this bubble).
+                        List<ImageSource> bubbleImageSources = images.Select(i => i.Source).ToList();
+                        int clickedIndex = bubbleImageSources.IndexOf(img.Source);
+                        var focusWindow = new ImageFocusWindow(bubbleImageSources, clickedIndex);
+                        focusWindow.ShowDialog();
+                    };
+
                     Grid.SetRow(img, 0);
                     Grid.SetColumn(img, i);
                     grid1.Children.Add(img);
@@ -526,6 +551,7 @@ namespace EchoOrbit.Helpers
                 {
                     grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 }
+                // For the second row:
                 for (int i = 0; i < row2Count; i++)
                 {
                     Image img = images[row1Count + i];
@@ -533,6 +559,16 @@ namespace EchoOrbit.Helpers
                     img.HorizontalAlignment = HorizontalAlignment.Stretch;
                     img.VerticalAlignment = VerticalAlignment.Stretch;
                     img.Stretch = Stretch.UniformToFill;
+
+                    // Attach the event handler.
+                    img.MouseLeftButtonUp += (s, e) =>
+                    {
+                        List<ImageSource> bubbleImageSources = images.Select(i => i.Source).ToList();
+                        int clickedIndex = bubbleImageSources.IndexOf(img.Source);
+                        var focusWindow = new ImageFocusWindow(bubbleImageSources, clickedIndex);
+                        focusWindow.ShowDialog();
+                    };
+
                     Grid.SetRow(img, 0);
                     Grid.SetColumn(img, i);
                     grid2.Children.Add(img);
