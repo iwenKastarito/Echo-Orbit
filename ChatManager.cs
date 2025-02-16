@@ -185,10 +185,11 @@ namespace EchoOrbit.Helpers
                                 {
                                     int count = Math.Min(chunkSize, inlineImages.Count - i);
                                     List<Image> chunk = inlineImages.GetRange(i, count);
-                                    // Assuming received messages use SeaGreen as the bubble background.
+                                    // For incoming messages, you might use a background like SeaGreen:
                                     messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.SeaGreen));
                                 }
                             }
+
 
                         }
                         else
@@ -402,10 +403,11 @@ namespace EchoOrbit.Helpers
                     {
                         int count = Math.Min(chunkSize, outgoingImages.Count - i);
                         List<Image> chunk = outgoingImages.GetRange(i, count);
-                        // Assuming outgoing messages use DodgerBlue as the bubble background.
+                        // For outgoing messages, you might use a background like DodgerBlue:
                         messagesContainer.Children.Add(CreateImageBubble(chunk, Brushes.DodgerBlue));
                     }
                 }
+
 
                 foreach (var info in nonImageAttachments)
                 {
@@ -442,15 +444,10 @@ namespace EchoOrbit.Helpers
         }
 
         /// <summary>
-        /// Creates an image bubble that groups multiple images in a single container.
-        /// </summary>
-        /// <param name="images">A list of Image controls.</param>
-        /// <returns>A Border element containing a WrapPanel with the images.</returns>
-        /// <summary>
         /// Creates an image bubble that arranges up to 8 images in a grid with no extra margin.
         /// For 1–4 images, a single row is used. For 5–8, two rows are used.
-        /// The entire bubble is filled by the images (no visible background),
-        /// and the bubble's background color is set via the parameter.
+        /// The entire bubble is filled by the images (no visible gaps), and the bubble's background color
+        /// is set via the parameter. The bubble always has round corners.
         /// </summary>
         /// <param name="images">A list of Image controls (each with no margin set).</param>
         /// <param name="bubbleBackground">The background brush for the bubble.</param>
@@ -488,11 +485,11 @@ namespace EchoOrbit.Helpers
             }
             else if (n <= 8)
             {
-                // Two rows: split the images evenly
+                // Two rows: split the images evenly.
                 int row1Count = (int)Math.Ceiling(n / 2.0);
                 int row2Count = n - row1Count;
 
-                // First row
+                // First row.
                 Grid grid1 = new Grid();
                 for (int i = 0; i < row1Count; i++)
                 {
@@ -509,7 +506,7 @@ namespace EchoOrbit.Helpers
                     grid1.Children.Add(img);
                 }
 
-                // Second row
+                // Second row.
                 Grid grid2 = new Grid();
                 for (int i = 0; i < row2Count; i++)
                 {
@@ -525,22 +522,25 @@ namespace EchoOrbit.Helpers
                     Grid.SetColumn(img, i);
                     grid2.Children.Add(img);
                 }
-
                 verticalPanel.Children.Add(grid1);
                 verticalPanel.Children.Add(grid2);
             }
 
-            // Wrap the layout in a Border. Set padding = 0 so the images fill the bubble.
+            // Create a Border that wraps the vertical panel.
             Border bubble = new Border
             {
                 Background = bubbleBackground,
                 Padding = new Thickness(0),
                 Margin = new Thickness(5),
-                CornerRadius = new CornerRadius(10),
-                Child = verticalPanel
+                // Set a round corner radius (adjust the value as desired)
+                CornerRadius = new CornerRadius(15),
+                Child = verticalPanel,
+                SnapsToDevicePixels = true
             };
+
             return bubble;
         }
+
 
 
         /// <summary>
