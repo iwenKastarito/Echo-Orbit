@@ -190,6 +190,7 @@ namespace EchoOrbit.Helpers
                             }
 
 
+
                         }
                         else
                         {
@@ -407,6 +408,7 @@ namespace EchoOrbit.Helpers
                 }
 
 
+
                 foreach (var info in nonImageAttachments)
                 {
                     messagesContainer.Children.Add(CreateTextBubble(info, Brushes.White, Brushes.DodgerBlue));
@@ -441,7 +443,7 @@ namespace EchoOrbit.Helpers
             return bubble;
         }
 
-        
+
         /// </summary>
         /// <param name="images">A list of Image controls (their Margin will be set to zero and alignment to Stretch).</param>
         /// <param name="bubbleBackground">The background Brush for the bubble.</param>
@@ -496,7 +498,6 @@ namespace EchoOrbit.Helpers
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
-                // One row that stretches.
                 grid1.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < row1Count; i++)
                 {
@@ -553,6 +554,14 @@ namespace EchoOrbit.Helpers
                 VerticalAlignment = VerticalAlignment.Stretch,
                 SnapsToDevicePixels = true
             };
+
+            // Bind the bubble's width to the messagesContainer's ActualWidth so it fills the space.
+            // (Assumes messagesContainer is accessible in this scope.)
+            bubble.SetBinding(Border.WidthProperty, new System.Windows.Data.Binding("ActualWidth")
+            {
+                Source = messagesContainer,
+                Mode = System.Windows.Data.BindingMode.OneWay
+            });
 
             return bubble;
         }
