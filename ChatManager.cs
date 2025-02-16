@@ -30,7 +30,7 @@ namespace EchoOrbit.Helpers
         public string FileType { get; set; }
         /// <summary>
         /// For small files, the file content encoded as a Base64 string.
-        /// For large files sent via TCP, this can be empty.
+        /// For large files sent via TCP, this is left empty.
         /// </summary>
         public string ContentBase64 { get; set; }
         /// <summary>
@@ -53,12 +53,12 @@ namespace EchoOrbit.Helpers
         /// </summary>
         public ChatSession CurrentChatSession { get; set; }
 
-        // We'll use a UDP client on a fixed port for chat messages.
+        // UDP client used for chat messages.
         private UdpClient udpClient;
-        private int chatPort = 8890; // arbitrary port for chat messages
+        private int chatPort = 8890; // arbitrary UDP port for chat messages
 
-        // Threshold in bytes to decide if a file is “large” (e.g. music).
-        // For demonstration, assume files larger than 100 KB should use TCP.
+        // Threshold in bytes to decide if a file should be sent via TCP.
+        // Files larger than this (e.g., 100 KB) will be transferred over TCP.
         private const long FileSizeThreshold = 100 * 1024;
 
         public ChatManager(StackPanel container, MusicController musicController)
@@ -66,7 +66,7 @@ namespace EchoOrbit.Helpers
             this.messagesContainer = container;
             this.musicController = musicController;
             udpClient = new UdpClient(chatPort);
-            // Start listening for incoming messages.
+            // Start listening for incoming UDP messages.
             Task.Run(() => ListenForMessages());
         }
 
@@ -77,7 +77,7 @@ namespace EchoOrbit.Helpers
                 try
                 {
                     UdpReceiveResult result = await udpClient.ReceiveAsync();
-                    // Capture the sender's endpoint (for file transfer later).
+                    // Capture the sender's endpoint (used later for TCP file transfer).
                     IPEndPoint senderEndpoint = result.RemoteEndPoint;
                     string json = Encoding.UTF8.GetString(result.Buffer);
 
@@ -88,7 +88,7 @@ namespace EchoOrbit.Helpers
                     }
                     catch (Exception)
                     {
-                        // If JSON deserialization fails, treat it as plain text.
+                        // If deserialization fails, treat as plain text.
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             messagesContainer.Children.Add(new TextBlock
@@ -103,7 +103,7 @@ namespace EchoOrbit.Helpers
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        // Display the text message.
+                        // Display the text part of the message.
                         messagesContainer.Children.Add(new TextBlock
                         {
                             Text = $"{receivedMsg.SenderDisplayName}: {receivedMsg.Text}",
@@ -116,26 +116,25 @@ namespace EchoOrbit.Helpers
                         {
                             foreach (var att in receivedMsg.Attachments)
                             {
-                                if (att.IsFileTransfer && att.FileType == "audio")
+                                if (att.IsFileTransfer && (att.FileType == "audio" || att.FileType == "zip"))
                                 {
-                                    // Create a clickable text element to download the file.
+                                    // Create clickable text to download the file.
                                     TextBlock downloadBlock = new TextBlock
                                     {
-                                        Text = $"Audio file '{att.FileName}' available. Click here to download.",
+                                        Text = $"File '{att.FileName}' available. Click here to download.",
                                         Foreground = Brushes.LightBlue,
                                         Margin = new Thickness(5),
                                         Cursor = System.Windows.Input.Cursors.Hand
                                     };
                                     downloadBlock.MouseLeftButtonUp += (s, e) =>
                                     {
-                                        // Initiate file download using the sender's IP and provided transfer port.
                                         DownloadFile(att, senderEndpoint.Address);
                                     };
                                     messagesContainer.Children.Add(downloadBlock);
                                 }
                                 else if (att.FileType == "image" && !att.IsFileTransfer)
                                 {
-                                    // For images sent inline.
+                                    // Display inline image attachments.
                                     try
                                     {
                                         byte[] imageBytes = Convert.FromBase64String(att.ContentBase64);
@@ -158,12 +157,12 @@ namespace EchoOrbit.Helpers
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine("Error displaying image attachment: " + ex.Message);
+                                        Console.WriteLine("Error displaying image: " + ex.Message);
                                     }
                                 }
                                 else
                                 {
-                                    // For other inline attachments (zip, etc.)
+                                    // For other inline attachments.
                                     messagesContainer.Children.Add(new TextBlock
                                     {
                                         Text = $"Attachment: {att.FileName} ({att.FileType})",
@@ -184,7 +183,7 @@ namespace EchoOrbit.Helpers
 
         /// <summary>
         /// Sends a chat message with attachments.
-        /// For large files (exceeding FileSizeThreshold), use TCP file transfer.
+        /// For files larger than the threshold, uses TCP file transfer.
         /// </summary>
         public void SendMessage(string message, List<string> imageAttachments, List<string> audioAttachments, List<string> zipAttachments)
         {
@@ -196,12 +195,12 @@ namespace EchoOrbit.Helpers
 
             ChatMessage chatMessage = new ChatMessage
             {
-                SenderDisplayName = "Me", // Replace with actual sender's name if available.
+                SenderDisplayName = "Me", // Replace with your actual display name if available.
                 Text = message,
                 Attachments = new List<Attachment>()
             };
 
-            // Process image attachments (assume these are small enough to send inline).
+            // Process image attachments (assumed small enough to send inline).
             foreach (var path in imageAttachments)
             {
                 if (File.Exists(path))
@@ -219,7 +218,7 @@ namespace EchoOrbit.Helpers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Error reading image attachment: " + ex.Message);
+                        Console.WriteLine("Error reading image: " + ex.Message);
                     }
                 }
             }
@@ -234,7 +233,7 @@ namespace EchoOrbit.Helpers
                         FileInfo fi = new FileInfo(path);
                         if (fi.Length > FileSizeThreshold)
                         {
-                            // For large audio files, use TCP file transfer.
+                            // For large audio files (which can be up to 500 MB), use TCP.
                             int port = StartTcpFileTransfer(path);
                             chatMessage.Attachments.Add(new Attachment
                             {
@@ -242,12 +241,11 @@ namespace EchoOrbit.Helpers
                                 FileType = "audio",
                                 IsFileTransfer = true,
                                 TransferPort = port,
-                                ContentBase64 = "" // No inline content.
+                                ContentBase64 = ""
                             });
                         }
                         else
                         {
-                            // For small files, send inline.
                             byte[] fileBytes = File.ReadAllBytes(path);
                             chatMessage.Attachments.Add(new Attachment
                             {
@@ -260,7 +258,7 @@ namespace EchoOrbit.Helpers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Error reading audio attachment: " + ex.Message);
+                        Console.WriteLine("Error reading audio: " + ex.Message);
                     }
                 }
             }
@@ -275,7 +273,7 @@ namespace EchoOrbit.Helpers
                         FileInfo fi = new FileInfo(path);
                         if (fi.Length > FileSizeThreshold)
                         {
-                            // For large zip files, start a TCP file transfer.
+                            // Use TCP for large zip files.
                             int port = StartTcpFileTransfer(path);
                             chatMessage.Attachments.Add(new Attachment
                             {
@@ -283,12 +281,11 @@ namespace EchoOrbit.Helpers
                                 FileType = "zip",
                                 IsFileTransfer = true,
                                 TransferPort = port,
-                                ContentBase64 = "" // Not sending inline.
+                                ContentBase64 = ""
                             });
                         }
                         else
                         {
-                            // For small zip files, send inline.
                             byte[] fileBytes = File.ReadAllBytes(path);
                             chatMessage.Attachments.Add(new Attachment
                             {
@@ -301,11 +298,10 @@ namespace EchoOrbit.Helpers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Error reading zip attachment: " + ex.Message);
+                        Console.WriteLine("Error reading zip: " + ex.Message);
                     }
                 }
             }
-
 
             // Serialize the chat message to JSON.
             string json = JsonSerializer.Serialize(chatMessage);
@@ -326,7 +322,7 @@ namespace EchoOrbit.Helpers
                     foreach (var att in chatMessage.Attachments)
                     {
                         string attInfo = att.IsFileTransfer
-                            ? $"{att.FileName} ({att.FileType}) - File transfer on port {att.TransferPort}"
+                            ? $"{att.FileName} ({att.FileType}) - Transfer on port {att.TransferPort}"
                             : $"{att.FileName} ({att.FileType})";
                         messagesContainer.Children.Add(new TextBlock
                         {
@@ -340,15 +336,16 @@ namespace EchoOrbit.Helpers
         }
 
         /// <summary>
-        /// Starts a TCP listener on a free port to send the file.
-        /// Returns the port number.
+        /// Starts a TCP listener on a free port to transfer the file.
+        /// This method streams the file in chunks so that it can support large files (up to 500 MB or more).
+        /// Returns the TCP port number for the file transfer.
         /// </summary>
         private int StartTcpFileTransfer(string filePath)
         {
-            TcpListener listener = new TcpListener(IPAddress.Any, 0); // Let OS choose free port.
+            TcpListener listener = new TcpListener(IPAddress.Any, 0); // OS selects free port.
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            // Launch a task to accept a single connection and send the file.
+            // Start accepting a connection and streaming the file.
             Task.Run(() =>
             {
                 try
@@ -357,6 +354,7 @@ namespace EchoOrbit.Helpers
                     using (NetworkStream ns = client.GetStream())
                     using (FileStream fs = File.OpenRead(filePath))
                     {
+                        // Copy the file stream to the network stream in chunks.
                         fs.CopyTo(ns);
                     }
                 }
@@ -387,7 +385,7 @@ namespace EchoOrbit.Helpers
                     {
                         ns.CopyTo(ms);
                         byte[] fileData = ms.ToArray();
-                        // Save the downloaded file to a temporary path.
+                        // Save the file to a temporary location.
                         string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), att.FileName);
                         File.WriteAllBytes(filePath, fileData);
                         MessageBox.Show($"File downloaded to: {filePath}");
