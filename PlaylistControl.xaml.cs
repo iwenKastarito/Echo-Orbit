@@ -222,17 +222,5 @@ namespace EchoOrbit.Controls
         }
     }
 
-    //public class Song
-    //{
-    //    public string FilePath { get; set; }
-    //    public string Title { get; set; }
-    //    public ImageSource Thumbnail { get; set; }
-    //}
 
-    //public class Playlist
-    //{
-    //    public string Name { get; set; }
-    //    public ImageSource Thumbnail { get; set; }
-    //    public ObservableCollection<Song> Songs { get; set; } = new ObservableCollection<Song>();
-    //}
 }

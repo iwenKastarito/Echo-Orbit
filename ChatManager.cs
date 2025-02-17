@@ -176,7 +176,7 @@ namespace EchoOrbit.Helpers
                                     else if (att.FileType == "audio")
                                     {
                                         // Create an audio bubble for the audio attachment.
-                                        Border audioBubble = CreateAudioBubble(att, senderEndpoint.Address, Brushes.SeaGreen);
+                                        Border audioBubble = CreateAudioBubble(att, ((IPEndPoint)client.Client.RemoteEndPoint).Address, Brushes.SeaGreen);
                                         messagesContainer.Children.Add(audioBubble);
                                     }
                                     else
