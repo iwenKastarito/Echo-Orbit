@@ -44,7 +44,12 @@ namespace EchoOrbit.Helpers
         /// The TCP port on the sender’s side where the file can be downloaded.
         /// </summary>
         public int TransferPort { get; set; }
+        /// <summary>
+        /// Local file path where the attachment is stored after download.
+        /// </summary>
+        public string LocalFilePath { get; set; }  // <-- Add this line.
     }
+
 
     public class ChatManager
     {
@@ -665,34 +670,53 @@ namespace EchoOrbit.Helpers
             };
             // Store the attachment and senderIP in the Tag for use in the click handler.
             playButton.Tag = new Tuple<Attachment, IPAddress>(att, senderIP);
+
             playButton.Click += async (s, e) =>
             {
                 var tuple = (Tuple<Attachment, IPAddress>)playButton.Tag;
                 var attachment = tuple.Item1;
                 var ip = tuple.Item2;
-                string filePath = "";
-                if (attachment.IsFileTransfer)
+                string filePath = attachment.LocalFilePath;
+                if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
                 {
-                    filePath = await DownloadAudioFileAsync(attachment, ip);
-                }
-                else
-                {
-                    filePath = SaveAudioFromBase64(attachment.ContentBase64, attachment.FileName);
+                    // If file hasn't been downloaded, download it.
+                    if (attachment.IsFileTransfer)
+                    {
+                        filePath = await DownloadAudioFileAsync(attachment, ip);
+                    }
+                    else
+                    {
+                        filePath = SaveAudioFromBase64(attachment.ContentBase64, attachment.FileName);
+                    }
+                    // Save the downloaded file path for future clicks.
+                    attachment.LocalFilePath = filePath;
                 }
                 if (!string.IsNullOrEmpty(filePath))
                 {
-                    // Create a Song object from the file.
-                    Song song = new Song { FilePath = filePath, Title = attachment.FileName };
-                    // If no playlist exists, create one.
-                    if (musicController.CurrentPlaylist == null)
+                    // Check if the song is already in the MusicController's playlist.
+                    bool alreadyAdded = false;
+                    if (musicController.CurrentPlaylist != null)
                     {
-                        musicController.CurrentPlaylist = new ObservableCollection<Song>();
+                        foreach (var song in musicController.CurrentPlaylist)
+                        {
+                            if (string.Equals(song.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                alreadyAdded = true;
+                                break;
+                            }
+                        }
                     }
-                    // Add the song to the playlist.
-                    musicController.CurrentPlaylist.Add(song);
-                    // Set the playlist index to the last song added.
-                    musicController.CurrentPlaylistIndex = musicController.CurrentPlaylist.Count - 1;
-                    // Play the song.
+                    else
+                    {
+                        musicController.CurrentPlaylist = new System.Collections.ObjectModel.ObservableCollection<Song>();
+                    }
+                    if (!alreadyAdded)
+                    {
+                        Song song = new Song { FilePath = filePath, Title = attachment.FileName };
+                        musicController.CurrentPlaylist.Add(song);
+                        musicController.CurrentPlaylistIndex = musicController.CurrentPlaylist.Count - 1;
+                    }
+                    // Play the audio file.
                     musicController.PlayMusicFromFile(filePath);
                 }
             };
@@ -709,6 +733,7 @@ namespace EchoOrbit.Helpers
             };
             return bubble;
         }
+
 
 
         /// <summary>
