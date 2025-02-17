@@ -130,22 +130,13 @@ namespace EchoOrbit.Helpers
                             {
                                 foreach (var att in receivedMsg.Attachments)
                                 {
-                                    if (att.IsFileTransfer && (att.FileType == "audio" || att.FileType == "zip"))
+                                    if (att.FileType == "audio")
                                     {
-                                        // For file-transfer attachments, create clickable text to download.
-                                        TextBlock downloadBlock = new TextBlock
-                                        {
-                                            Text = $"File '{att.FileName}' available. Click here to download.",
-                                            Foreground = Brushes.LightBlue,
-                                            Margin = new Thickness(5),
-                                            Cursor = System.Windows.Input.Cursors.Hand
-                                        };
-                                        downloadBlock.MouseLeftButtonUp += (s, e) =>
-                                        {
-                                            DownloadFile(att, senderEndpoint.Address);
-                                        };
-                                        messagesContainer.Children.Add(downloadBlock);
+                                        // Always create an audio bubble for audio attachments.
+                                        Border audioBubble = CreateAudioBubble(att, ((IPEndPoint)client.Client.RemoteEndPoint).Address, Brushes.SeaGreen);
+                                        messagesContainer.Children.Add(audioBubble);
                                     }
+
                                     else if (att.FileType == "image" && !att.IsFileTransfer)
                                     {
                                         try
@@ -730,15 +721,25 @@ namespace EchoOrbit.Helpers
             TcpListener listener = new TcpListener(IPAddress.Any, 0); // OS chooses a free port.
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            Task.Run(() =>
+
+            Task.Run(async () =>
             {
                 try
                 {
-                    using (TcpClient client = listener.AcceptTcpClient())
-                    using (NetworkStream ns = client.GetStream())
-                    using (FileStream fs = File.OpenRead(filePath))
+                    // Wait up to 60 seconds for a connection.
+                    var acceptTask = listener.AcceptTcpClientAsync();
+                    if (await Task.WhenAny(acceptTask, Task.Delay(TimeSpan.FromSeconds(60))) == acceptTask)
                     {
-                        fs.CopyTo(ns);
+                        using (TcpClient client = acceptTask.Result)
+                        using (NetworkStream ns = client.GetStream())
+                        using (FileStream fs = File.OpenRead(filePath))
+                        {
+                            await fs.CopyToAsync(ns);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("File transfer timeout: no connection was made within 60 seconds.");
                     }
                 }
                 catch (Exception ex)
@@ -752,6 +753,7 @@ namespace EchoOrbit.Helpers
             });
             return port;
         }
+
 
         /// <summary>
         /// Downloads a file from the sender via TCP using the provided transfer port.
