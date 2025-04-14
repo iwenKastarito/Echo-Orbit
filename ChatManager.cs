@@ -47,8 +47,10 @@ namespace EchoOrbit.Helpers
         /// <summary>
         /// Local file path where the attachment is stored after download.
         /// </summary>
-        public string LocalFilePath { get; set; }  // <-- Add this line.
+        public string LocalFilePath { get; set; }
     }
+
+
 
 
     public class ChatManager
@@ -137,14 +139,13 @@ namespace EchoOrbit.Helpers
                                 {
                                     if (att.FileType == "audio")
                                     {
-                                        // Always create an audio bubble for audio attachments.
+                                        // Always create an audio bubble.
                                         Border audioBubble = CreateAudioBubble(att, ((IPEndPoint)client.Client.RemoteEndPoint).Address, Brushes.SeaGreen);
                                         messagesContainer.Children.Add(audioBubble);
 
-                                        // Pre-populate the playlist:
+                                        // Optionally, pre-populate the playlist:
                                         if (musicController.CurrentPlaylist == null)
                                             musicController.CurrentPlaylist = new System.Collections.ObjectModel.ObservableCollection<Song>();
-
                                         bool alreadyAdded = false;
                                         foreach (var song in musicController.CurrentPlaylist)
                                         {
@@ -156,11 +157,11 @@ namespace EchoOrbit.Helpers
                                         }
                                         if (!alreadyAdded)
                                         {
-                                            // Create a Song with an empty FilePath (it will be updated once the file is downloaded)
                                             Song newSong = new Song { FilePath = "", Title = att.FileName };
                                             musicController.CurrentPlaylist.Add(newSong);
                                         }
                                     }
+
 
                                     else if (att.FileType == "image" && !att.IsFileTransfer)
                                     {
@@ -415,7 +416,6 @@ namespace EchoOrbit.Helpers
                         }
                         else if (att.FileType == "audio")
                         {
-                            // For outgoing messages, use IPAddress.Loopback as the sender is local.
                             Border audioBubble = CreateAudioBubble(att, IPAddress.Loopback, Brushes.DodgerBlue);
                             messagesContainer.Children.Add(audioBubble);
                         }
@@ -678,9 +678,12 @@ namespace EchoOrbit.Helpers
 
         private Border CreateAudioBubble(Attachment att, IPAddress senderIP, Brush bubbleBackground)
         {
+            // Set initial content: if already downloaded, show music note; otherwise, show down arrow.
+            string initialSymbol = (!string.IsNullOrEmpty(att.LocalFilePath) && System.IO.File.Exists(att.LocalFilePath)) ? "♫" : "🢃";
+
             Button playButton = new Button
             {
-                Content = "♫",
+                Content = initialSymbol,
                 FontSize = 48,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
@@ -688,7 +691,8 @@ namespace EchoOrbit.Helpers
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            // Store the attachment and senderIP in the Tag.
+
+            // Store the attachment and senderIP for use in the click event.
             playButton.Tag = new Tuple<Attachment, IPAddress>(att, senderIP);
 
             playButton.Click += async (s, e) =>
@@ -697,11 +701,13 @@ namespace EchoOrbit.Helpers
                 var attachment = tuple.Item1;
                 var ip = tuple.Item2;
 
-                // Check if the file is already downloaded.
-                string filePath = attachment.LocalFilePath;
-                if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
+                // Check if the file is downloaded.
+                if (string.IsNullOrEmpty(attachment.LocalFilePath) || !System.IO.File.Exists(attachment.LocalFilePath))
                 {
-                    // Not downloaded yet; download it.
+                    // File is not fully downloaded.
+                    playButton.Content = "Downloading...";
+                    playButton.IsEnabled = false;
+                    string filePath = "";
                     if (attachment.IsFileTransfer)
                     {
                         filePath = await DownloadAudioFileAsync(attachment, ip);
@@ -710,25 +716,43 @@ namespace EchoOrbit.Helpers
                     {
                         filePath = SaveAudioFromBase64(attachment.ContentBase64, attachment.FileName);
                     }
-                    // Save the local file path so subsequent clicks use it.
-                    attachment.LocalFilePath = filePath;
-                }
-                if (!string.IsNullOrEmpty(filePath))
-                {
-                    // Update the corresponding Song in the playlist if not already updated.
-                    if (musicController.CurrentPlaylist != null)
+                    if (!string.IsNullOrEmpty(filePath))
                     {
-                        foreach (var song in musicController.CurrentPlaylist)
+                        attachment.LocalFilePath = filePath;
+                        playButton.Content = "♫";
+                        playButton.IsEnabled = true;
+                    }
+                    else
+                    {
+                        // Download failed; revert to down arrow.
+                        playButton.Content = "🢃";
+                        playButton.IsEnabled = true;
+                        return;
+                    }
+                }
+                // At this point, the file is downloaded.
+                if (!string.IsNullOrEmpty(attachment.LocalFilePath))
+                {
+                    // Pre-populate the playlist if the song isn't already added.
+                    if (musicController.CurrentPlaylist == null)
+                        musicController.CurrentPlaylist = new System.Collections.ObjectModel.ObservableCollection<Song>();
+                    bool alreadyAdded = false;
+                    foreach (var song in musicController.CurrentPlaylist)
+                    {
+                        if (song.Title.Equals(attachment.FileName, System.StringComparison.OrdinalIgnoreCase))
                         {
-                            if (song.Title.Equals(attachment.FileName, System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(song.FilePath))
-                            {
-                                song.FilePath = filePath;
-                                break;
-                            }
+                            alreadyAdded = true;
+                            break;
                         }
                     }
+                    if (!alreadyAdded)
+                    {
+                        Song newSong = new Song { FilePath = attachment.LocalFilePath, Title = attachment.FileName };
+                        musicController.CurrentPlaylist.Add(newSong);
+                        musicController.CurrentPlaylistIndex = musicController.CurrentPlaylist.Count - 1;
+                    }
                     // Play the audio file.
-                    musicController.PlayMusicFromFile(filePath);
+                    musicController.PlayMusicFromFile(attachment.LocalFilePath);
                 }
             };
 
@@ -744,6 +768,8 @@ namespace EchoOrbit.Helpers
             };
             return bubble;
         }
+
+
 
 
 
