@@ -220,12 +220,12 @@ namespace EchoOrbit
             // Validate the file path before attempting to play.
             if (string.IsNullOrWhiteSpace(song.FilePath))
             {
-                MessageBox.Show("The audio file path is empty. Unable to play the song.", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Error: The audio file path is empty. The file may have failed to download properly.", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             if (!System.IO.File.Exists(song.FilePath))
             {
-                MessageBox.Show("The audio file does not exist at the specified path:\n" + song.FilePath, "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Error: The audio file does not exist at the specified path:\n" + song.FilePath, "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -276,7 +276,7 @@ namespace EchoOrbit
                     }
                 }
                 catch { }
-                // Fallback image if nothing is found.
+                // Fallback image if nothing found.
                 BitmapImage fallback = new BitmapImage();
                 fallback.BeginInit();
                 fallback.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);

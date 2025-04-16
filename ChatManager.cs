@@ -485,6 +485,11 @@ namespace EchoOrbit.Helpers
                             read += r;
                         }
                         long totalLength = BitConverter.ToInt64(lengthBytes, 0);
+                        if (totalLength <= 0)
+                        {
+                            MessageBox.Show("Received file size is zero.", "Download Error");
+                            return "";
+                        }
                         long totalRead = 0;
                         byte[] buffer = new byte[8192];
                         int bytesRead;
@@ -494,6 +499,7 @@ namespace EchoOrbit.Helpers
                             totalRead += bytesRead;
                             progress.Report((totalRead * 100.0) / totalLength);
                         }
+                        await fs.FlushAsync();
                     }
                 }
             }
@@ -867,7 +873,7 @@ namespace EchoOrbit.Helpers
                         }
                         else if (att.FileType == "audio")
                         {
-                            Border audioBubble = CreateAudioBubble(att, IPAddress.Loopback, Brushes.DodgerBlue);
+                            Border audioBubble = CreateAudioBubble(att, System.Net.IPAddress.Loopback, Brushes.DodgerBlue);
                             messagesContainer.Children.Add(audioBubble);
                             if (!outgoingAudioAttachments.ContainsKey(att.FileName))
                             {
