@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.IO; // For System.IO.File
+using System.IO; // For System.IO.File operations
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -217,8 +217,28 @@ namespace EchoOrbit
             if (song == null)
                 return;
 
-            // Set the media source on the UI thread.
-            MusicPlayer.Source = new Uri(song.FilePath, UriKind.Absolute);
+            // Validate the file path before attempting to play.
+            if (string.IsNullOrWhiteSpace(song.FilePath))
+            {
+                MessageBox.Show("The audio file path is empty. Unable to play the song.", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            if (!System.IO.File.Exists(song.FilePath))
+            {
+                MessageBox.Show("The audio file does not exist at the specified path:\n" + song.FilePath, "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                // Set the media source on the UI thread.
+                MusicPlayer.Source = new Uri(song.FilePath, UriKind.Absolute);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error setting media source: " + ex.Message, "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             // Offload album art loading to a background thread.
             BitmapImage bmp = await Task.Run(() =>
@@ -256,7 +276,7 @@ namespace EchoOrbit
                     }
                 }
                 catch { }
-                // Fallback image if nothing found.
+                // Fallback image if nothing is found.
                 BitmapImage fallback = new BitmapImage();
                 fallback.BeginInit();
                 fallback.UriSource = new Uri("C:/Users/iwen2/source/repos/Echo Orbit/Echo Orbit/defaultAudioImage.jpg", UriKind.Absolute);
@@ -380,6 +400,4 @@ namespace EchoOrbit
             return fallback;
         }
     }
-
-
 }
