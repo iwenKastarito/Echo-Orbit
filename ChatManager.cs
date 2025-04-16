@@ -574,10 +574,10 @@ namespace EchoOrbit.Helpers
                 var attachment = tuple.Item1;
                 var ip = tuple.Item2;
                 string filePath = attachment.LocalFilePath;
-                // For sender (local), assume file is immediately available.
+
                 if (!isLocal)
                 {
-                    // For remote audio, if file is not yet downloaded:
+                    // For remote audio, if file is not yet downloaded or doesn't exist:
                     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                     {
                         // If TransferPort is not set (i.e. 0), then the file transfer hasn't started.
@@ -590,26 +590,28 @@ namespace EchoOrbit.Helpers
                                 AudioFileName = attachment.FileName
                             };
                             SendControlMessage(ctrlMsg, ip);
-                            // Meanwhile, the UI remains with "🢃"
+                            MessageBox.Show("Requested file transfer. Please click again once the transfer has started.");
                             return;
                         }
                         else
                         {
-                            // TransferPort is available; download the file.
+                            // TransferPort is available; attempt to download the file.
                             filePath = await DownloadAudioFileAsync(attachment, ip);
-                            if (!string.IsNullOrEmpty(filePath))
+                            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                             {
-                                attachment.LocalFilePath = filePath;
-                                // Update UI button: change symbol to ♫.
-                                playButton.Content = "♫";
+                                MessageBox.Show("Audio file download failed. Please try again.");
+                                return;
                             }
+                            attachment.LocalFilePath = filePath;
+                            // Update UI button: change symbol to ♫.
+                            playButton.Content = "♫";
                         }
                     }
                 }
-                // For local or after download, play the audio.
-                if (!string.IsNullOrEmpty(filePath))
+                // For local or after successful download, play the audio if the file exists.
+                if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
-                    // For safety, update the MusicController's playlist.
+                    // Update the MusicController's playlist.
                     if (musicController.CurrentPlaylist == null)
                     {
                         musicController.CurrentPlaylist = new ObservableCollection<Song>();
@@ -629,7 +631,12 @@ namespace EchoOrbit.Helpers
                         musicController.CurrentPlaylist.Add(newSong);
                         musicController.CurrentPlaylistIndex = musicController.CurrentPlaylist.Count - 1;
                     }
+                    // Play the audio file.
                     musicController.PlayMusicFromFile(filePath);
+                }
+                else
+                {
+                    MessageBox.Show("Audio file is not available to play.");
                 }
             };
 
@@ -696,7 +703,7 @@ namespace EchoOrbit.Helpers
                         FileInfo fi = new FileInfo(path);
                         if (fi.Length > FileSizeThreshold)
                         {
-                            // For large files, do not start file transfer immediately.
+                            // For large files, delay starting TCP transfer.
                             chatMessage.Attachments.Add(new Attachment
                             {
                                 FileName = Path.GetFileName(path),
