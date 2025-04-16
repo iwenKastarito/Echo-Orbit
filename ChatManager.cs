@@ -62,7 +62,6 @@ namespace EchoOrbit.Helpers
     {
         private StackPanel messagesContainer;
         private MusicController musicController;
-
         private Dictionary<string, Attachment> outgoingAudioAttachments = new Dictionary<string, Attachment>();
 
         /// <summary>
@@ -129,7 +128,6 @@ namespace EchoOrbit.Helpers
                         // Change the inner icon (if available) from "🢃" to "♫".
                         if (bubble.Child is Grid grid && grid.Children.Count > 0)
                         {
-                            // Assume first child is the icon presenter.
                             if (grid.Children[0] is ContentControl iconControl)
                             {
                                 iconControl.Content = "♫";
@@ -145,9 +143,7 @@ namespace EchoOrbit.Helpers
         {
             try
             {
-                // Get the sender's endpoint from the client.
                 IPEndPoint senderEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
-
                 using (client)
                 using (NetworkStream ns = client.GetStream())
                 using (MemoryStream ms = new MemoryStream())
@@ -168,20 +164,17 @@ namespace EchoOrbit.Helpers
                     {
                         if (receivedMsg != null)
                         {
-                            // Check for control messages first.
+                            // Process control messages first.
                             if (!string.IsNullOrEmpty(receivedMsg.ControlType))
                             {
                                 if (receivedMsg.ControlType == "AudioTransferReady")
                                 {
-                                    // We are the sender. The receiver is ready for the audio file.
-                                    // Find the corresponding outgoing attachment by file name.
+                                    // We are the sender.
                                     Attachment outgoingAtt = GetOutgoingAttachmentByName(receivedMsg.AudioFileName);
                                     if (outgoingAtt != null && outgoingAtt.TransferPort == 0)
                                     {
-                                        // Initiate TCP file transfer now.
                                         int port = StartTcpFileTransfer(outgoingAtt.LocalFilePath);
                                         outgoingAtt.TransferPort = port;
-                                        // Send control message "AudioTransferStarted" with the transfer port.
                                         ChatMessage ctrlMsg = new ChatMessage
                                         {
                                             ControlType = "AudioTransferStarted",
@@ -190,11 +183,10 @@ namespace EchoOrbit.Helpers
                                         };
                                         SendControlMessage(ctrlMsg, ((IPEndPoint)client.Client.RemoteEndPoint).Address);
                                     }
-                                    return;  // Do not update UI for control messages.
+                                    return;  // Don't update UI for control messages.
                                 }
                                 else if (receivedMsg.ControlType == "AudioTransferStarted")
                                 {
-                                    // We are the receiver. Update the corresponding attachment's TransferPort.
                                     int port;
                                     if (int.TryParse(receivedMsg.Text, out port))
                                     {
@@ -204,37 +196,24 @@ namespace EchoOrbit.Helpers
                                 }
                             }
 
-                            // Create a text bubble for the message text.
                             messagesContainer.Children.Add(CreateTextBubble(
                                 $"{receivedMsg.SenderDisplayName}: {receivedMsg.Text}",
                                 Brushes.White,
                                 Brushes.SeaGreen));
 
-                            // Group inline image attachments.
                             List<Image> inlineImages = new List<Image>();
-
                             if (receivedMsg.Attachments != null)
                             {
                                 foreach (var att in receivedMsg.Attachments)
                                 {
                                     if (att.FileType == "audio")
                                     {
-                                        // Always create an audio bubble.
                                         Border audioBubble = CreateAudioBubble(att, ((IPEndPoint)client.Client.RemoteEndPoint).Address, Brushes.SeaGreen);
                                         messagesContainer.Children.Add(audioBubble);
-
-                                        // Optionally, pre-populate the playlist.
                                         if (musicController.CurrentPlaylist == null)
                                             musicController.CurrentPlaylist = new ObservableCollection<Song>();
-                                        bool alreadyAdded = false;
-                                        foreach (var song in musicController.CurrentPlaylist)
-                                        {
-                                            if (song.Title.Equals(att.FileName, StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                alreadyAdded = true;
-                                                break;
-                                            }
-                                        }
+                                        bool alreadyAdded = musicController.CurrentPlaylist.Any(song =>
+                                            song.Title.Equals(att.FileName, StringComparison.OrdinalIgnoreCase));
                                         if (!alreadyAdded)
                                         {
                                             Song newSong = new Song { FilePath = "", Title = att.FileName };
@@ -270,7 +249,6 @@ namespace EchoOrbit.Helpers
                                     }
                                     else
                                     {
-                                        // For non-image inline attachments.
                                         messagesContainer.Children.Add(CreateTextBubble(
                                             $"Attachment: {att.FileName} ({att.FileType})",
                                             Brushes.White,
@@ -278,7 +256,6 @@ namespace EchoOrbit.Helpers
                                     }
                                 }
                             }
-                            // If we collected any inline images, group them in one image bubble.
                             if (inlineImages.Count > 0)
                             {
                                 int chunkSize = 8;
@@ -306,9 +283,6 @@ namespace EchoOrbit.Helpers
             }
         }
 
-        /// <summary>
-        /// Creates a text bubble (a Border containing a TextBlock) for displaying a message.
-        /// </summary>
         private Border CreateTextBubble(string text, Brush foreground, Brush background)
         {
             TextBlock tb = new TextBlock
@@ -329,13 +303,9 @@ namespace EchoOrbit.Helpers
             return bubble;
         }
 
-        /// <summary>
-        /// Creates an image bubble: a Border containing arranged Image controls.
-        /// </summary>
         private Border CreateImageBubble(List<Image> images, Brush bubbleBackground)
         {
             int n = images.Count;
-            // Create a vertical container.
             StackPanel verticalPanel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
@@ -352,9 +322,7 @@ namespace EchoOrbit.Helpers
                 };
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < n; i++)
-                {
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                }
                 for (int i = 0; i < n; i++)
                 {
                     Image img = images[i];
@@ -379,17 +347,10 @@ namespace EchoOrbit.Helpers
             {
                 int row1Count = (int)Math.Ceiling(n / 2.0);
                 int row2Count = n - row1Count;
-
-                Grid grid1 = new Grid
-                {
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    VerticalAlignment = VerticalAlignment.Stretch
-                };
+                Grid grid1 = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 grid1.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < row1Count; i++)
-                {
                     grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                }
                 for (int i = 0; i < row1Count; i++)
                 {
                     Image img = images[i];
@@ -408,17 +369,10 @@ namespace EchoOrbit.Helpers
                     Grid.SetColumn(img, i);
                     grid1.Children.Add(img);
                 }
-
-                Grid grid2 = new Grid
-                {
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    VerticalAlignment = VerticalAlignment.Stretch
-                };
+                Grid grid2 = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 for (int i = 0; i < row2Count; i++)
-                {
                     grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                }
                 for (int i = 0; i < row2Count; i++)
                 {
                     Image img = images[row1Count + i];
@@ -462,8 +416,6 @@ namespace EchoOrbit.Helpers
             return bubble;
         }
 
-        // Modified asynchronous method to download an audio file via TCP with progress.
-        // Expects the sender to first send an 8-byte header (the file length, as an Int64) before the file data.
         private async Task<string> DownloadAudioFileAsync(Attachment att, IPAddress senderIP, IProgress<double> progress)
         {
             string filePath = Path.Combine(Path.GetTempPath(), att.FileName);
@@ -475,7 +427,6 @@ namespace EchoOrbit.Helpers
                     using (NetworkStream ns = tcpClient.GetStream())
                     using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
                     {
-                        // Read the first 8 bytes to get the total file length.
                         byte[] lengthBytes = new byte[8];
                         int read = 0;
                         while (read < 8)
@@ -511,7 +462,6 @@ namespace EchoOrbit.Helpers
             return filePath;
         }
 
-        // Synchronously saves an inline (Base64) audio file to a temporary location.
         private string SaveAudioFromBase64(string base64, string fileName)
         {
             string filePath = Path.Combine(Path.GetTempPath(), fileName);
@@ -549,14 +499,11 @@ namespace EchoOrbit.Helpers
             }
         }
 
-        // Creates an audio bubble.
-        // For remote audio, the bubble is a Grid containing an icon and (when needed) an overlay CircularProgressBar.
         private Border CreateAudioBubble(Attachment att, IPAddress senderIP, Brush bubbleBackground)
         {
             bool isLocal = senderIP.Equals(IPAddress.Loopback);
             string initialSymbol = isLocal ? "♫" : "🢃";
 
-            // Create a ContentControl to present the icon.
             ContentControl iconControl = new ContentControl
             {
                 Content = initialSymbol,
@@ -567,11 +514,9 @@ namespace EchoOrbit.Helpers
                 Background = Brushes.Transparent
             };
 
-            // Create a Grid container that will hold the icon and, when needed, the circular progress.
             Grid container = new Grid();
-            container.Children.Add(iconControl); // the icon is the first child
+            container.Children.Add(iconControl);
 
-            // The Border will use the Grid as its child; also store the Tag and a reference in the attachment.
             Border bubble = new Border
             {
                 Background = bubbleBackground,
@@ -585,10 +530,9 @@ namespace EchoOrbit.Helpers
             };
             att.BubbleElement = container;
 
-            // Click event handler.
             iconControl.MouseLeftButtonUp += async (s, e) =>
             {
-                // If a download is already in progress, notify and exit.
+                // Prevent concurrent downloads.
                 if (container.Tag is bool inProgress && inProgress)
                 {
                     MessageBox.Show("File download is in progress. Please wait until it finishes.");
@@ -600,30 +544,31 @@ namespace EchoOrbit.Helpers
 
                 if (!isLocal)
                 {
-                    // If the file is not present locally.
+                    // Check if file exists locally; if not, try to download.
                     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                     {
+                        // If TransferPort hasn't been set, request transfer and poll for up to 6 seconds.
                         if (attachment.TransferPort == 0)
                         {
-                            // Request file transfer from the sender.
                             ChatMessage ctrlMsg = new ChatMessage
                             {
                                 ControlType = "AudioTransferReady",
                                 AudioFileName = attachment.FileName
                             };
                             SendControlMessage(ctrlMsg, senderIP);
-                            // Wait a short period for sender to start the transfer.
-                            await Task.Delay(2000);
+                            int pollCount = 0;
+                            while (attachment.TransferPort == 0 && pollCount < 6)
+                            {
+                                await Task.Delay(1000);
+                                pollCount++;
+                            }
                             if (attachment.TransferPort == 0)
                             {
-                                MessageBox.Show("File transfer did not start yet. Please try again in a moment.");
+                                MessageBox.Show("File transfer did not start yet. Please try again later.");
                                 return;
                             }
                         }
-
-                        // Mark the container as busy.
                         container.Tag = true;
-                        // Create a CircularProgressBar (the stub control defined below).
                         CircularProgressBar progressBar = new CircularProgressBar
                         {
                             Minimum = 0,
@@ -636,16 +581,8 @@ namespace EchoOrbit.Helpers
                             Foreground = Brushes.LightGreen,
                             Background = Brushes.Transparent
                         };
-                        // Add the progress bar overlay (it appears above the icon).
                         container.Children.Add(progressBar);
-
-                        // Create a progress reporter to update the progress bar.
-                        var progressIndicator = new Progress<double>(percent =>
-                        {
-                            progressBar.Value = percent;
-                        });
-
-                        // Download the file with progress.
+                        var progressIndicator = new Progress<double>(percent => progressBar.Value = percent);
                         filePath = await DownloadAudioFileAsync(attachment, senderIP, progressIndicator);
                         if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                         {
@@ -660,22 +597,15 @@ namespace EchoOrbit.Helpers
                         container.Tag = false;
                     }
                 }
-                // After local file exists or download completes, play the audio.
+                // Play the audio if file path is now valid.
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
                     if (musicController.CurrentPlaylist == null)
                     {
                         musicController.CurrentPlaylist = new ObservableCollection<Song>();
                     }
-                    bool alreadyAdded = false;
-                    foreach (var song in musicController.CurrentPlaylist)
-                    {
-                        if (song.Title.Equals(attachment.FileName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            alreadyAdded = true;
-                            break;
-                        }
-                    }
+                    bool alreadyAdded = musicController.CurrentPlaylist.Any(song =>
+                        song.Title.Equals(attachment.FileName, StringComparison.OrdinalIgnoreCase));
                     if (!alreadyAdded)
                     {
                         Song newSong = new Song { FilePath = filePath, Title = attachment.FileName };
@@ -693,9 +623,6 @@ namespace EchoOrbit.Helpers
             return bubble;
         }
 
-        /// <summary>
-        /// Sends a chat message with attachments using TCP.
-        /// </summary>
         public void SendMessage(string message, List<string> imageAttachments, List<string> audioAttachments, List<string> zipAttachments)
         {
             if (CurrentChatSession == null)
@@ -710,7 +637,6 @@ namespace EchoOrbit.Helpers
                 Attachments = new List<Attachment>()
             };
 
-            // Process image attachments.
             foreach (var path in imageAttachments)
             {
                 if (File.Exists(path))
@@ -733,7 +659,6 @@ namespace EchoOrbit.Helpers
                 }
             }
 
-            // Process audio attachments.
             foreach (var path in audioAttachments)
             {
                 if (File.Exists(path))
@@ -772,7 +697,6 @@ namespace EchoOrbit.Helpers
                 }
             }
 
-            // Process zip attachments.
             foreach (var path in zipAttachments)
             {
                 if (File.Exists(path))
@@ -813,7 +737,6 @@ namespace EchoOrbit.Helpers
 
             string json = JsonSerializer.Serialize(chatMessage);
             byte[] data = Encoding.UTF8.GetBytes(json);
-
             try
             {
                 using (TcpClient client = new TcpClient())
@@ -830,7 +753,6 @@ namespace EchoOrbit.Helpers
                 MessageBox.Show("Error sending message: " + ex.Message);
             }
 
-            // Update UI for outgoing message.
             Application.Current.Dispatcher.Invoke(() =>
             {
                 messagesContainer.Children.Add(CreateTextBubble(
@@ -906,17 +828,11 @@ namespace EchoOrbit.Helpers
             });
         }
 
-        /// <summary>
-        /// Starts a TCP file transfer for the given file.
-        /// Streams the file with an 8-byte header (file length) before the file data.
-        /// Returns the port number for the transfer.
-        /// </summary>
         private int StartTcpFileTransfer(string filePath)
         {
             TcpListener listener = new TcpListener(IPAddress.Any, 0); // OS chooses a free port.
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-
             Task.Run(async () =>
             {
                 try
@@ -928,7 +844,6 @@ namespace EchoOrbit.Helpers
                         using (NetworkStream ns = client.GetStream())
                         using (FileStream fs = File.OpenRead(filePath))
                         {
-                            // Write the file length header.
                             byte[] lengthBytes = BitConverter.GetBytes(fs.Length);
                             await ns.WriteAsync(lengthBytes, 0, lengthBytes.Length);
                             await fs.CopyToAsync(ns);
@@ -951,10 +866,6 @@ namespace EchoOrbit.Helpers
             return port;
         }
 
-        /// <summary>
-        /// Downloads a file from the sender via TCP using the provided transfer port.
-        /// This is used for non-audio files and does not show progress.
-        /// </summary>
         private void DownloadFile(Attachment att, IPAddress senderIP)
         {
             try
@@ -980,9 +891,7 @@ namespace EchoOrbit.Helpers
         }
     }
 
-    // --------------------------------------------------------------------------
-    // Minimal stub implementation of a CircularProgressBar control.
-    // Replace this with your full-featured circular progress indicator if available.
+    // Minimal stub of a CircularProgressBar control.
     public class CircularProgressBar : ContentControl
     {
         public static readonly DependencyProperty ValueProperty =
