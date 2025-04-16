@@ -582,7 +582,7 @@ namespace EchoOrbit.Helpers
             // Click event handler.
             iconControl.MouseLeftButtonUp += async (s, e) =>
             {
-                // Use the container's Tag to check if a download is already in progress.
+                // If a download is already in progress, notify and exit.
                 if (container.Tag is bool inProgress && inProgress)
                 {
                     MessageBox.Show("File download is in progress. Please wait until it finishes.");
@@ -594,6 +594,7 @@ namespace EchoOrbit.Helpers
 
                 if (!isLocal)
                 {
+                    // If the file is not present locally.
                     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                     {
                         if (attachment.TransferPort == 0)
@@ -605,52 +606,55 @@ namespace EchoOrbit.Helpers
                                 AudioFileName = attachment.FileName
                             };
                             SendControlMessage(ctrlMsg, senderIP);
-                            MessageBox.Show("Requested file transfer. Please click again once the transfer starts.");
-                            return;
-                        }
-                        else
-                        {
-                            // Mark the container as busy.
-                            container.Tag = true;
-                            // Create a CircularProgressBar (the stub control defined below).
-                            CircularProgressBar progressBar = new CircularProgressBar
+                            // Wait a short period for sender to start the transfer.
+                            await Task.Delay(2000);
+                            if (attachment.TransferPort == 0)
                             {
-                                Minimum = 0,
-                                Maximum = 100,
-                                Value = 0,
-                                Width = 60,
-                                Height = 60,
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center,
-                                Foreground = Brushes.LightGreen,
-                                Background = Brushes.Transparent
-                            };
-                            // Add the progress bar overlay (it will appear above the icon).
-                            container.Children.Add(progressBar);
-
-                            // Create a progress reporter to update the progress bar.
-                            var progressIndicator = new Progress<double>(percent =>
-                            {
-                                progressBar.Value = percent;
-                            });
-
-                            // Download the file with progress.
-                            filePath = await DownloadAudioFileAsync(attachment, senderIP, progressIndicator);
-                            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                            {
-                                MessageBox.Show("Audio file download failed. Please try again.");
-                                container.Children.Remove(progressBar);
-                                container.Tag = false;
+                                MessageBox.Show("File transfer did not start yet. Please try again in a moment.");
                                 return;
                             }
-                            attachment.LocalFilePath = filePath;
-                            container.Children.Remove(progressBar);
-                            iconControl.Content = "♫";
-                            container.Tag = false;
                         }
+
+                        // Mark the container as busy.
+                        container.Tag = true;
+                        // Create a CircularProgressBar (the stub control defined below).
+                        CircularProgressBar progressBar = new CircularProgressBar
+                        {
+                            Minimum = 0,
+                            Maximum = 100,
+                            Value = 0,
+                            Width = 60,
+                            Height = 60,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Foreground = Brushes.LightGreen,
+                            Background = Brushes.Transparent
+                        };
+                        // Add the progress bar overlay (it appears above the icon).
+                        container.Children.Add(progressBar);
+
+                        // Create a progress reporter to update the progress bar.
+                        var progressIndicator = new Progress<double>(percent =>
+                        {
+                            progressBar.Value = percent;
+                        });
+
+                        // Download the file with progress.
+                        filePath = await DownloadAudioFileAsync(attachment, senderIP, progressIndicator);
+                        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+                        {
+                            MessageBox.Show("Audio file download failed. Please try again.");
+                            container.Children.Remove(progressBar);
+                            container.Tag = false;
+                            return;
+                        }
+                        attachment.LocalFilePath = filePath;
+                        container.Children.Remove(progressBar);
+                        iconControl.Content = "♫";
+                        container.Tag = false;
                     }
                 }
-                // At this point, for local audio or after successful download, play the file.
+                // After local file exists or download completes, play the audio.
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
                     if (musicController.CurrentPlaylist == null)
