@@ -16,8 +16,6 @@ using LocalNetworkTest;
 using LocalChatSecurity; // Contains SecurityManager
 using System.Net;
 
-
-
 namespace EchoOrbit
 {
     public partial class Dash : Window
@@ -73,8 +71,7 @@ namespace EchoOrbit
             // Start peer discovery.
             peerDiscovery.Start();
 
-
-            // In Dash.xaml.cs (inside the constructor, after initializing peerDiscovery and connectionsControl)
+            // Handle PeerDiscovered event.
             peerDiscovery.PeerDiscovered += (endpoint, peerId, displayName, profileImageBase64) =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -128,9 +125,6 @@ namespace EchoOrbit
                 });
             };
 
-
-
-
             // Initialize ConnectionsControl.
             connectionsControl = new ConnectionsControl();
             // Subscribe to the chat-request event.
@@ -149,24 +143,22 @@ namespace EchoOrbit
         private void Dash_Loaded(object sender, RoutedEventArgs e)
         {
             userData = UserDataManager.LoadUserData();
-
             // Optionally, trigger additional secure steps here.
-            // For example, if you want to perform an immediate key exchange:
-            // var (myEphemeralKey, mySignature) = securityManager.StartKeyExchange();
-            // Then send these (along with your long-term public key) to discovered peers.
         }
 
         private void Dash_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            UserDataManager.SaveUserData(userData);            // If in the future you add a Stop() method to SimplePeerDiscovery, you can call it here.
-            // For now, no such method exists.
+            UserDataManager.SaveUserData(userData);
+            // If peerDiscovery.Stop() is added in the future, call it here.
         }
 
         private void ChatArea_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
+                BeeHiveBackground.IsBeehiveActive = true; // Enable shimmering
                 DropOverlay.Visibility = Visibility.Visible;
+                e.Effects = DragDropEffects.Copy;
             }
             e.Handled = true;
         }
@@ -182,18 +174,21 @@ namespace EchoOrbit
 
         private void ChatArea_DragLeave(object sender, DragEventArgs e)
         {
+            BeeHiveBackground.IsBeehiveActive = false; // Disable shimmering
             DropOverlay.Visibility = Visibility.Collapsed;
             e.Handled = true;
         }
 
         private void ChatArea_Drop(object sender, DragEventArgs e)
         {
+            BeeHiveBackground.IsBeehiveActive = false; // Disable shimmering
             DropOverlay.Visibility = Visibility.Collapsed;
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] droppedFiles = (string[])e.Data.GetData(DataFormats.FileDrop);
                 foreach (var file in droppedFiles)
                 {
+                    Console.WriteLine($"Dropped file: {file}");
                     attachmentManager.AddAttachment(file);
                 }
             }
@@ -245,7 +240,6 @@ namespace EchoOrbit
             MessageTextBox.Clear();
             attachmentManager.ClearAttachments();
         }
-
 
         private void MessageTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -413,7 +407,6 @@ namespace EchoOrbit
             sb.Begin();
         }
 
-        // Stub event handlers for audio control buttons.
         private void PrevButton_Click(object sender, RoutedEventArgs e)
         {
             if (musicController.CurrentPlaylist != null && musicController.CurrentPlaylist.Count > 0)

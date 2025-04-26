@@ -5,11 +5,6 @@ using System.Windows.Media;
 
 namespace EchoOrbit.Controls
 {
-    /// <summary>
-    /// A custom control that draws a dynamic, shimmering honeycomb background.
-    /// Each hexagon features a drop shadow, a dynamic radial gradient fill with a shimmering effect,
-    /// and a refined glow effect that responds to mouse proximity.
-    /// </summary>
     public class BeeHivePanel : FrameworkElement
     {
         // Hexagon geometry parameters.
@@ -50,10 +45,6 @@ namespace EchoOrbit.Controls
         private DateTime _lastUpdate = DateTime.MinValue;
 
         #region Dependency Property: IsBeehiveActive
-        /// <summary>
-        /// When set to false, the BeeHivePanel will skip its per‑frame calculations.
-        /// You can bind or set this property from your window’s code‑behind.
-        /// </summary>
         public static readonly DependencyProperty IsBeehiveActiveProperty =
             DependencyProperty.Register(
                 nameof(IsBeehiveActive),
@@ -84,12 +75,6 @@ namespace EchoOrbit.Controls
             CompositionTarget.Rendering -= OnRendering;
         }
 
-        /// <summary>
-        /// Called on every render pass. This method updates only if:
-        /// - The BeeHivePanel is active,
-        /// - The parent window is active and not minimized, and
-        /// - At least ~33ms have elapsed since the last update (30 FPS).
-        /// </summary>
         private void OnRendering(object sender, EventArgs e)
         {
             if (!IsBeehiveActive)
@@ -107,7 +92,6 @@ namespace EchoOrbit.Controls
             _time += 0.02; // Adjust speed as desired.
             InvalidateVisual();
         }
-
 
         protected override void OnRender(DrawingContext dc)
         {
@@ -179,12 +163,12 @@ namespace EchoOrbit.Controls
                     gradientBrush.GradientStops.Add(new GradientStop(baseFillColor, 1.0));
                     gradientBrush.Freeze();
 
-                    // Draw drop shadow by translating to (centerX + ShadowOffset, centerY + ShadowOffset).
+                    // Draw drop shadow.
                     dc.PushTransform(new TranslateTransform(centerX + ShadowOffset.X, centerY + ShadowOffset.Y));
                     dc.DrawGeometry(_shadowBrush, null, _baseHexagonGeometry);
                     dc.Pop();
 
-                    // Draw the hexagon by translating to its center.
+                    // Draw the hexagon.
                     dc.PushTransform(new TranslateTransform(centerX, centerY));
 
                     // Draw dynamic gradient fill.
@@ -218,20 +202,16 @@ namespace EchoOrbit.Controls
                     pen.Freeze();
                     dc.DrawGeometry(null, pen, _baseHexagonGeometry);
 
-                    dc.Pop(); // End hexagon transform.
+                    dc.Pop();
                 }
             }
         }
 
-        /// <summary>
-        /// Creates and returns a base hexagon geometry centered at (0,0).
-        /// </summary>
         private Geometry CreateBaseHexagonGeometry()
         {
             var geo = new StreamGeometry();
             using (var ctx = geo.Open())
             {
-                // Define a flat-topped hexagon with vertices relative to (0,0)
                 ctx.BeginFigure(new Point(-R, 0), true, true);
                 ctx.LineTo(new Point(-R / 2, -R * Math.Sqrt(3) / 2), true, false);
                 ctx.LineTo(new Point(R / 2, -R * Math.Sqrt(3) / 2), true, false);
@@ -243,9 +223,6 @@ namespace EchoOrbit.Controls
             return geo;
         }
 
-        /// <summary>
-        /// Linearly interpolates between two colors.
-        /// </summary>
         private Color InterpolateColor(Color from, Color to, double t)
         {
             byte a = (byte)(from.A + (to.A - from.A) * t);

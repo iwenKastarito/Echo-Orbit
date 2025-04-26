@@ -1,5 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Window x:Class="EchoOrbit.Dash"
+﻿<Window x:Class="EchoOrbit.Dash"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:EchoOrbit.Converters"
@@ -33,6 +32,7 @@
         <Color x:Key="MediaControlHoverStartColor">#4a4a4a</Color>
         <Color x:Key="MediaControlHoverEndColor">#2e2e2e</Color>
         <Color x:Key="TextColor">White</Color>
+
         <!-- Brush Resources -->
         <SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
         <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>
@@ -60,7 +60,7 @@
         <conv:BottomBarMarginConverter x:Key="BottomBarMarginConverter"/>
         <conv:OneSixthMarginConverter x:Key="OneSixthMarginConverter"/>
 
-        <!-- Custom ScrollBar style -->
+        <!-- Custom ScrollBar Style -->
         <Style x:Key="CustomScrollBarStyle" TargetType="ScrollBar">
             <Setter Property="Background" Value="{StaticResource SecondaryBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
@@ -321,26 +321,19 @@
                         <ColumnDefinition Width="130"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <!-- NavigationPanel (excerpt from existing code) -->
+                    <!-- NavigationPanel -->
                     <StackPanel x:Name="NavigationPanel" Grid.Column="0" Background="{StaticResource MenuBackgroundBrush}" Grid.ColumnSpan="3">
                         <TextBlock Text="Section 1" Style="{StaticResource NavigationTitleStyle}"/>
                         <Button Content="Item1" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
-                        <!-- Playlist button -->
                         <Button Content="Item2" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <TextBlock Text="Section 2" Style="{StaticResource NavigationTitleStyle}"/>
                         <Button Content="Item3" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <Button Content="Item4" Style="{StaticResource EnhancedNavigationButtonStyle}" Click="NavigationButton_Click"/>
                     </StackPanel>
 
-
                     <ContentControl x:Name="MainContent" Grid.Column="3" Background="{StaticResource PrimaryBackgroundBrush}">
                         <TextBlock Text="Default Main Content" Foreground="{StaticResource TextBrush}" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </ContentControl>
-
-
-
-
-
                 </Grid>
             </Grid>
 
@@ -361,9 +354,9 @@
                           DragLeave="ChatArea_DragLeave"
                           DragOver="ChatArea_DragOver"
                           Drop="ChatArea_Drop">
-                        <!-- Your background panel -->
+                        <!-- BeeHivePanel background -->
                         <controls:BeeHivePanel x:Name="BeeHiveBackground" />
-                        <!-- The main chat content -->
+                        <!-- Main chat content -->
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -399,7 +392,7 @@
                                 </Grid>
                             </StackPanel>
                         </Grid>
-                        <!-- Updated overlay element for drag feedback with darker background and white text -->
+                        <!-- Drag feedback overlay -->
                         <Border x:Name="DropOverlay" Background="#AA000000" Visibility="Collapsed" IsHitTestVisible="False">
                             <TextBlock Text="Drop files here" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -409,7 +402,7 @@
 
             <!-- Bottom Bar Container -->
             <Grid x:Name="BottomBarContainer" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Panel.ZIndex="1"
-                    MouseEnter="BottomBar_MouseEnter" MouseLeave="BottomBar_MouseLeave">
+                  MouseEnter="BottomBar_MouseEnter" MouseLeave="BottomBar_MouseLeave">
                 <Grid.Margin>
                     <MultiBinding Converter="{StaticResource BottomBarMarginConverter}">
                         <Binding ElementName="ChatDrawer" Path="Width"/>
@@ -422,40 +415,33 @@
                         <TranslateTransform x:Name="BottomBarTransform" Y="60"/>
                     </Border.RenderTransform>
                     <Grid>
-                        <!-- Layer 0: Audio Thumbnail with custom clip (bottom-left is sharp) -->
+                        <!-- Layer 0: Audio Thumbnail -->
                         <Border HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="150" Panel.ZIndex="0">
                             <Border.Clip>
                                 <PathGeometry>
                                     <PathFigure StartPoint="10,0" IsClosed="True">
-                                        <!-- Top edge -->
                                         <LineSegment Point="140,0"/>
-                                        <!-- Top-right corner rounded -->
                                         <ArcSegment Point="150,10" Size="10,10" SweepDirection="Clockwise"/>
-                                        <!-- Right edge -->
                                         <LineSegment Point="150,90"/>
-                                        <!-- Bottom-right corner rounded -->
                                         <ArcSegment Point="140,100" Size="10,10" SweepDirection="Clockwise"/>
-                                        <!-- Bottom edge: goes straight to bottom-left (sharp) -->
                                         <LineSegment Point="0,100"/>
-                                        <!-- Left edge -->
                                         <LineSegment Point="0,10"/>
-                                        <!-- Top-left corner rounded -->
                                         <ArcSegment Point="10,0" Size="10,10" SweepDirection="Clockwise"/>
                                     </PathFigure>
                                 </PathGeometry>
                             </Border.Clip>
                             <Image x:Name="AudioThumbnailImage"
-                                     Source="pack://application:,,,/defaultAudioImage.png"
-                                     Stretch="UniformToFill"/>
+                                   Source="pack://application:,,,/defaultAudioImage.png"
+                                   Stretch="UniformToFill"/>
                         </Border>
 
-                        <!-- Layer 1: Semi-transparent green overlay with same custom clip and mouse-over effect -->
+                        <!-- Layer 1: Semi-transparent green overlay -->
                         <Rectangle x:Name="OverlayRect"
-                               HorizontalAlignment="Left"
-                               VerticalAlignment="Stretch"
-                               Width="150"
-                               Fill="#8855b155"
-                               Panel.ZIndex="1">
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Stretch"
+                                   Width="150"
+                                   Fill="#8855b155"
+                                   Panel.ZIndex="1">
                             <Rectangle.Clip>
                                 <PathGeometry>
                                     <PathFigure StartPoint="10,0" IsClosed="True">
@@ -494,7 +480,6 @@
                             </Rectangle.Style>
                         </Rectangle>
 
-
                         <!-- Layer 2: Media Controls -->
                         <Grid Panel.ZIndex="2">
                             <Grid.RowDefinitions>
@@ -511,7 +496,7 @@
                                 <Slider x:Name="MusicProgressSlider" Grid.Column="1" Style="{StaticResource FancySliderStyle}" Minimum="0" Maximum="100" ValueChanged="MusicProgressSlider_ValueChanged" Margin="5" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="RemainingTimeText" Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" Margin="0,0,5,0" Text="0:00"/>
                             </Grid>
-                            <Grid Grid.Row="1">
+                            <Grid Grid.Row="1" Margin="{Binding ElementName=BottomBar, Path=ActualWidth, Converter={StaticResource OneSixthMarginConverter}, FallbackValue=0}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
@@ -520,7 +505,6 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <!-- MusicTitle container -->
                                 <Border Grid.Column="0" Style="{StaticResource MusicTitleContainerStyle}">
                                     <TextBlock x:Name="MusicTitle" Style="{StaticResource MusicTitleTextStyle}" Text="No Music"/>
                                 </Border>

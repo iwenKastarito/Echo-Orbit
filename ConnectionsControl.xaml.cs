@@ -19,10 +19,18 @@ namespace EchoOrbit.Controls
             InitializeComponent();
             DataContext = this;
 
-            // Sample data for online users.
+            // Initialize OnlineUsers collection
             OnlineUsers = new ObservableCollection<OnlineUser>();
 
-            // Initialize groups (empty at start).
+            // Add "YOU" user for testing
+            OnlineUsers.Add(new OnlineUser
+            {
+                DisplayName = "YOU",
+                ProfileImage = new BitmapImage(new Uri("pack://application:,,,/defaultProfile.png", UriKind.Absolute)),
+                PeerEndpoint = new IPEndPoint(IPAddress.Loopback, 8890)
+            });
+
+            // Initialize groups (empty at start)
             Groups = new ObservableCollection<Group>();
         }
 
