@@ -16,44 +16,25 @@ using System.Windows.Media.Imaging;
 
 namespace EchoOrbit.Helpers
 {
-    // Models for the chat message and its attachments.
     public class ChatMessage
     {
         public string SenderDisplayName { get; set; }
         public string Text { get; set; }
         public List<Attachment> Attachments { get; set; }
-        // Control messages use these fields:
-        public string ControlType { get; set; } // e.g., "AudioTransferReady", "AudioTransferStarted"
+        public string ControlType { get; set; }
         public string AudioFileName { get; set; }
     }
 
     public class Attachment
     {
         public string FileName { get; set; }
-        /// <summary>
-        /// "image", "audio", or "zip"
-        /// </summary>
         public string FileType { get; set; }
-        /// <summary>
-        /// For small files, inline: Base64 encoded.
-        /// </summary>
         public string ContentBase64 { get; set; }
-        /// <summary>
-        /// If true, the file must be transferred via TCP.
-        /// </summary>
         public bool IsFileTransfer { get; set; }
-        /// <summary>
-        /// The TCP port on the sender’s side where the file can be downloaded.
-        /// </summary>
         public int TransferPort { get; set; }
-        /// <summary>
-        /// Once downloaded, store the local file path.
-        /// </summary>
         public string LocalFilePath { get; set; }
-        /// <summary>
-        /// (For incoming audio) Reference to the UI button in the audio bubble, so its content can be updated.
-        /// </summary>
         public Button BubbleButton { get; set; }
+        public IProgress<float> Progress { get; set; }
     }
 
     public class ChatManager
@@ -62,8 +43,9 @@ namespace EchoOrbit.Helpers
         private readonly MusicController musicController;
         private readonly Dictionary<string, Attachment> outgoingAudioAttachments = new Dictionary<string, Attachment>();
         private readonly TcpListener tcpListener;
-        private readonly int chatPort = 8890; // Fixed port for chat messages
+        private readonly int chatPort = 8890;
         private const long FileSizeThreshold = 100 * 1024; // 100 KB
+        private readonly string audioStoragePath; // Path to store received audio files
 
         public ChatSession CurrentChatSession { get; set; }
 
@@ -73,6 +55,19 @@ namespace EchoOrbit.Helpers
             this.musicController = musicController;
             tcpListener = new TcpListener(IPAddress.Any, chatPort);
             tcpListener.Start();
+
+            // Initialize the audio storage folder
+            audioStoragePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EchoOrbit", "ReceivedAudio");
+            try
+            {
+                Directory.CreateDirectory(audioStoragePath);
+                Console.WriteLine($"Audio storage directory created at: {audioStoragePath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating audio storage directory: {ex.Message}");
+            }
+
             Task.Run(() => ListenForTcpMessages());
         }
 
@@ -186,6 +181,11 @@ namespace EchoOrbit.Helpers
                                     }
                                     else if (att.FileType == "audio")
                                     {
+                                        // Handle inline audio (Base64)
+                                        if (!att.IsFileTransfer && !string.IsNullOrEmpty(att.ContentBase64))
+                                        {
+                                            att.LocalFilePath = SaveAudioFromBase64(att.ContentBase64, att.FileName);
+                                        }
                                         Border audioBubble = CreateAudioBubble(att, senderEndpoint.Address, Brushes.SeaGreen);
                                         messagesContainer.Children.Add(audioBubble);
 
@@ -200,9 +200,9 @@ namespace EchoOrbit.Helpers
                                                 break;
                                             }
                                         }
-                                        if (!alreadyAdded)
+                                        if (!alreadyAdded && !string.IsNullOrEmpty(att.LocalFilePath))
                                         {
-                                            musicController.CurrentPlaylist.Add(new Song { FilePath = "", Title = att.FileName });
+                                            musicController.CurrentPlaylist.Add(new Song { FilePath = att.LocalFilePath, Title = att.FileName });
                                         }
                                     }
                                     else
@@ -258,7 +258,12 @@ namespace EchoOrbit.Helpers
                     tuple.Item1.FileName == fileName)
                 {
                     tuple.Item1.TransferPort = transferPort;
-                    btn.Content = "🢃"; // Still downloading
+                    btn.Content = "🢃"; // Ready to download
+                    var progressBar = container.Children.OfType<ProgressBar>().FirstOrDefault();
+                    if (progressBar != null)
+                    {
+                        progressBar.Visibility = Visibility.Visible; // Show progress bar for download
+                    }
                     break;
                 }
             }
@@ -436,6 +441,11 @@ namespace EchoOrbit.Helpers
                         {
                             Border audioBubble = CreateAudioBubble(att, IPAddress.Loopback, Brushes.DodgerBlue);
                             messagesContainer.Children.Add(audioBubble);
+                            if (att.IsFileTransfer && att.TransferPort == 0)
+                            {
+                                int port = StartTcpFileTransfer(att.LocalFilePath, att);
+                                att.TransferPort = port;
+                            }
                         }
                         else
                         {
@@ -624,7 +634,7 @@ namespace EchoOrbit.Helpers
         private SolidColorBrush AdjustColor(SolidColorBrush baseBrush, bool lighten)
         {
             Color color = baseBrush.Color;
-            double factor = lighten ? 1.2 : 0.8; // Lighten by 20% or darken by 20%
+            double factor = lighten ? 1.2 : 0.8;
             byte r = (byte)Math.Min(255, Math.Max(0, color.R * factor));
             byte g = (byte)Math.Min(255, Math.Max(0, color.G * factor));
             byte b = (byte)Math.Min(255, Math.Max(0, color.B * factor));
@@ -658,24 +668,22 @@ namespace EchoOrbit.Helpers
                 Value = 0,
                 Width = 70,
                 Height = 70,
-                Visibility = Visibility.Collapsed
+                Visibility = isLocal && att.IsFileTransfer ? Visibility.Visible : Visibility.Collapsed
             };
 
-            // Set ProgressBar Foreground based on bubble type
             if (bubbleBackground == Brushes.SeaGreen)
             {
-                progressBar.Foreground = AdjustColor((SolidColorBrush)bubbleBackground, true); // Lighter SeaGreen
+                progressBar.Foreground = AdjustColor((SolidColorBrush)bubbleBackground, true);
             }
             else if (bubbleBackground == Brushes.DodgerBlue)
             {
-                progressBar.Foreground = AdjustColor((SolidColorBrush)bubbleBackground, false); // Darker DodgerBlue
+                progressBar.Foreground = AdjustColor((SolidColorBrush)bubbleBackground, false);
             }
             else
             {
-                progressBar.Foreground = Brushes.Blue; // Fallback
+                progressBar.Foreground = Brushes.Blue;
             }
 
-            // Safely apply CircularProgressBarTemplate if available
             try
             {
                 var template = Application.Current.FindResource("CircularProgressBarTemplate") as ControlTemplate;
@@ -692,6 +700,20 @@ namespace EchoOrbit.Helpers
             {
                 Console.WriteLine($"Error: CircularProgressBarTemplate resource not found. Using default ProgressBar template. {ex.Message}");
             }
+
+            att.Progress = new Progress<float>(progressValue =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    progressBar.Value = progressValue * 100;
+                    progressBar.Visibility = Visibility.Visible;
+                    if (progressValue >= 1.0f)
+                    {
+                        progressBar.Visibility = Visibility.Collapsed;
+                    }
+                    Console.WriteLine($"Progress for '{att.FileName}': {progressValue:P0}");
+                });
+            });
 
             Grid container = new Grid();
             container.Children.Add(playButton);
@@ -710,7 +732,6 @@ namespace EchoOrbit.Helpers
                     {
                         if (attachment.TransferPort == 0)
                         {
-                            progressBar.Visibility = Visibility.Visible;
                             ChatMessage ctrlMsg = new ChatMessage
                             {
                                 ControlType = "AudioTransferReady",
@@ -721,25 +742,28 @@ namespace EchoOrbit.Helpers
                         }
                         else
                         {
-                            progressBar.Visibility = Visibility.Visible;
-                            filePath = await DownloadAudioFileAsync(attachment, ip, progressBar);
-                            if (!string.IsNullOrEmpty(filePath))
+                            try
                             {
+                                // Save to the ReceivedAudio folder
+                                filePath = Path.Combine(audioStoragePath, attachment.FileName);
+                                // Ensure unique filename to avoid overwrites
+                                filePath = GetUniqueFilePath(filePath);
+                                await TCPFileHandler.DownloadFileAsync(ip, attachment.TransferPort, filePath, attachment.Progress);
                                 attachment.LocalFilePath = filePath;
                                 playButton.Content = "♫";
-                                progressBar.Visibility = Visibility.Collapsed;
+                                Console.WriteLine($"Saved received audio to: {filePath}");
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                progressBar.Visibility = Visibility.Collapsed;
+                                MessageBox.Show($"Error downloading audio file: {ex.Message}");
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    progressBar.Visibility = Visibility.Collapsed;
+                                });
                                 return;
                             }
                         }
                     }
-                }
-                else if (att.IsFileTransfer && att.TransferPort == 0)
-                {
-                    progressBar.Visibility = Visibility.Visible;
                 }
 
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
@@ -779,52 +803,13 @@ namespace EchoOrbit.Helpers
             return bubble;
         }
 
-        private async Task<string> DownloadAudioFileAsync(Attachment att, IPAddress senderIP, ProgressBar progressBar)
-        {
-            string filePath = Path.Combine(Path.GetTempPath(), att.FileName);
-            try
-            {
-                using (TcpClient tcpClient = new TcpClient())
-                {
-                    await tcpClient.ConnectAsync(senderIP, att.TransferPort);
-                    using (NetworkStream ns = tcpClient.GetStream())
-                    using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                    {
-                        byte[] buffer = new byte[8192];
-                        long totalBytesRead = 0;
-                        FileInfo fi = new FileInfo(att.LocalFilePath ?? att.FileName);
-                        long totalBytes = fi.Length > 0 ? fi.Length : 1024 * 1024; // Fallback size
-                        int bytesRead;
-
-                        while ((bytesRead = await ns.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                        {
-                            await fs.WriteAsync(buffer, 0, bytesRead);
-                            totalBytesRead += bytesRead;
-                            double progress = (double)totalBytesRead / totalBytes * 100;
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                progressBar.Value = Math.Min(progress, 100);
-                            });
-                            Console.WriteLine($"Downloading '{att.FileName}': {totalBytesRead}/{totalBytes} bytes ({progress:F2}%)");
-                        }
-                    }
-                }
-                Console.WriteLine($"Successfully downloaded '{att.FileName}' to '{filePath}'");
-                return filePath;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error downloading audio file '{att.FileName}': {ex.Message}");
-                MessageBox.Show($"Error downloading audio file: {ex.Message}");
-                return "";
-            }
-        }
-
         private string SaveAudioFromBase64(string base64, string fileName)
         {
-            string filePath = Path.Combine(Path.GetTempPath(), fileName);
+            string filePath = Path.Combine(audioStoragePath, fileName);
             try
             {
+                // Ensure unique filename to avoid overwrites
+                filePath = GetUniqueFilePath(filePath);
                 byte[] bytes = Convert.FromBase64String(base64);
                 File.WriteAllBytes(filePath, bytes);
                 Console.WriteLine($"Saved inline audio '{fileName}' to '{filePath}'");
@@ -836,6 +821,26 @@ namespace EchoOrbit.Helpers
                 MessageBox.Show($"Error saving audio file: {ex.Message}");
                 return "";
             }
+        }
+
+        private string GetUniqueFilePath(string filePath)
+        {
+            if (!File.Exists(filePath))
+                return filePath;
+
+            string directory = Path.GetDirectoryName(filePath);
+            string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+            string extension = Path.GetExtension(filePath);
+            int counter = 1;
+            string newFilePath;
+
+            do
+            {
+                newFilePath = Path.Combine(directory, $"{fileNameWithoutExtension} ({counter}){extension}");
+                counter++;
+            } while (File.Exists(newFilePath));
+
+            return newFilePath;
         }
 
         private void SendControlMessage(ChatMessage ctrlMsg, IPAddress targetIP)
@@ -862,104 +867,9 @@ namespace EchoOrbit.Helpers
 
         private int StartTcpFileTransfer(string filePath, Attachment att)
         {
-            TcpListener listener = new TcpListener(IPAddress.Any, 0);
-            listener.Start();
-            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    var acceptTask = listener.AcceptTcpClientAsync();
-                    if (await Task.WhenAny(acceptTask, Task.Delay(TimeSpan.FromSeconds(60))) == acceptTask)
-                    {
-                        using (TcpClient client = acceptTask.Result)
-                        using (NetworkStream ns = client.GetStream())
-                        using (FileStream fs = File.OpenRead(filePath))
-                        {
-                            byte[] buffer = new byte[8192];
-                            long totalBytesSent = 0;
-                            long totalBytes = fs.Length;
-                            int bytesRead;
-
-                            while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
-                            {
-                                await ns.WriteAsync(buffer, 0, bytesRead);
-                                totalBytesSent += bytesRead;
-                                if (att?.BubbleButton != null)
-                                {
-                                    double progress = (double)totalBytesSent / totalBytes * 100;
-                                    Application.Current.Dispatcher.Invoke(() =>
-                                    {
-                                        var tuple = (Tuple<Attachment, IPAddress>)att.BubbleButton.Tag;
-                                        var container = (Grid)att.BubbleButton.Parent;
-                                        var progressBar = container.Children.OfType<ProgressBar>().FirstOrDefault();
-                                        if (progressBar != null)
-                                        {
-                                            progressBar.Visibility = Visibility.Visible;
-                                            progressBar.Value = Math.Min(progress, 100);
-                                        }
-                                    });
-                                    Console.WriteLine($"Sending '{att.FileName}': {totalBytesSent}/{totalBytes} bytes ({progress:F2}%)");
-                                }
-                            }
-                            Console.WriteLine($"Successfully sent '{Path.GetFileName(filePath)}' on port {port}");
-                            if (att?.BubbleButton != null)
-                            {
-                                Application.Current.Dispatcher.Invoke(() =>
-                                {
-                                    var container = (Grid)att.BubbleButton.Parent;
-                                    var progressBar = container.Children.OfType<ProgressBar>().FirstOrDefault();
-                                    if (progressBar != null)
-                                        progressBar.Visibility = Visibility.Collapsed;
-                                });
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"File transfer timeout for '{Path.GetFileName(filePath)}': no connection within 60 seconds.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during TCP file transfer for '{Path.GetFileName(filePath)}': {ex.Message}");
-                }
-                finally
-                {
-                    listener.Stop();
-                }
-            });
-
+            int port = TCPFileHandler.StartFileTransferServer(filePath, att?.Progress);
             Console.WriteLine($"Started TCP file transfer for '{Path.GetFileName(filePath)}' on port {port}");
             return port;
-        }
-
-        private void DownloadFile(Attachment att, IPAddress senderIP)
-        {
-            try
-            {
-                using (TcpClient tcpClient = new TcpClient())
-                {
-                    tcpClient.Connect(senderIP, att.TransferPort);
-                    using (NetworkStream ns = tcpClient.GetStream())
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        ns.CopyTo(ms);
-                        byte[] fileData = ms.ToArray();
-                        string filePath = Path.Combine(Path.GetTempPath(), att.FileName);
-                        File.WriteAllBytes(filePath, fileData);
-                        att.LocalFilePath = filePath;
-                        Console.WriteLine($"Downloaded file '{att.FileName}' to '{filePath}'");
-                        MessageBox.Show($"File downloaded to: {filePath}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error downloading file '{att.FileName}': {ex.Message}");
-                MessageBox.Show($"Error downloading file: {ex.Message}");
-            }
         }
     }
 }

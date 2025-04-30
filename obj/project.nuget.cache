@@ -1,11 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "TPHKKIPahcE=",
+  "dgSpecHash": "Fer5ItM4c+s=",
   "success": true,
   "projectFilePath": "C:\\Users\\iwen2\\source\\repos\\Echo Orbit\\Echo Orbit\\Echo Orbit.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\iwen2\\.nuget\\packages\\microsoft.sqlserver.transactsql.scriptdom\\170.23.0\\microsoft.sqlserver.transactsql.scriptdom.170.23.0.nupkg.sha512",
     "C:\\Users\\iwen2\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\iwen2\\.nuget\\packages\\serilog\\4.2.0\\serilog.4.2.0.nupkg.sha512",
+    "C:\\Users\\iwen2\\.nuget\\packages\\serilog.sinks.file\\7.0.0\\serilog.sinks.file.7.0.0.nupkg.sha512",
     "C:\\Users\\iwen2\\.nuget\\packages\\taglibsharp\\2.3.0\\taglibsharp.2.3.0.nupkg.sha512",
     "C:\\Users\\iwen2\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.22621.31\\microsoft.windows.sdk.net.ref.10.0.22621.31.nupkg.sha512"
   ],

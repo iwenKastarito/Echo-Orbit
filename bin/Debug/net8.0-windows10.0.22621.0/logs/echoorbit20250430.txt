@@ -1,0 +1,9 @@
+2025-04-30 14:42:41.799 +03:30 [INF] ChatManager initialized on port 8890
+2025-04-30 15:31:09.415 +03:30 [INF] ChatManager initialized on port 8890
+2025-04-30 15:31:17.438 +03:30 [INF] All file transfers cancelled
+2025-04-30 15:31:17.977 +03:30 [INF] All file transfers cancelled
+2025-04-30 15:31:49.623 +03:30 [INF] Started TCP file transfer for 'Into_the_Night_Extended_Attack_on_Titan_Season_4_U1bZpeUyKJs_140 (mp3cut.net).mp3' on port 58784
+2025-04-30 15:31:51.063 +03:30 [INF] Playing audio file 'C:\Users\iwen2\Downloads\Into_the_Night_Extended_Attack_on_Titan_Season_4_U1bZpeUyKJs_140 (mp3cut.net).mp3'
+2025-04-30 15:31:52.822 +03:30 [INF] Playing audio file 'C:\Users\iwen2\Downloads\Into_the_Night_Extended_Attack_on_Titan_Season_4_U1bZpeUyKJs_140 (mp3cut.net).mp3'
+2025-04-30 15:32:05.792 +03:30 [INF] All file transfers cancelled
+2025-04-30 15:32:06.915 +03:30 [INF] All file transfers cancelled

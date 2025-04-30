@@ -410,7 +410,7 @@
                     </MultiBinding>
                 </Grid.Margin>
                 <!-- BottomBar with layered content -->
-                <Border x:Name="BottomBar" Background="{StaticResource AccentBrush}" CornerRadius="10,0,0,0" Height="100">
+                <Border x:Name="BottomBar" Background="{StaticResource AccentBrush}" CornerRadius="10,0,0,0" Height="100" Margin="149,0,-28,0">
                     <Border.RenderTransform>
                         <TranslateTransform x:Name="BottomBarTransform" Y="60"/>
                     </Border.RenderTransform>
@@ -505,8 +505,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource MusicTitleContainerStyle}">
-                                    <TextBlock x:Name="MusicTitle" Style="{StaticResource MusicTitleTextStyle}" Text="No Music"/>
+                                <Border Grid.Column="0" Style="{StaticResource MusicTitleContainerStyle}" Margin="-100,0,0,0">
+                                    <TextBlock x:Name="MusicTitle" Style="{StaticResource MusicTitleTextStyle}" Text="No Music" Margin="10,0,-64,0"/>
                                 </Border>
                                 <Button x:Name="PrevButton" Grid.Column="2" Content="⏮" Click="PrevButton_Click" Margin="5" Style="{StaticResource MediaControlButtonStyle}"/>
                                 <Button x:Name="PlayPauseButton" Grid.Column="3" Content="▶" Click="PlayPauseButton_Click" Margin="5" Style="{StaticResource MediaControlButtonStyle}"/>
