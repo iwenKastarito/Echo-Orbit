@@ -56,7 +56,7 @@ namespace EchoOrbit.Helpers
             tcpListener = new TcpListener(IPAddress.Any, chatPort);
             tcpListener.Start();
 
-            // Initialize the audio storage folder
+            // Initialize the audio storage folder for received files
             audioStoragePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EchoOrbit", "ReceivedAudio");
             try
             {
@@ -317,7 +317,7 @@ namespace EchoOrbit.Helpers
                         {
                             FileName = Path.GetFileName(path),
                             FileType = "audio",
-                            LocalFilePath = path
+                            LocalFilePath = path // Use original path for sent files
                         };
                         if (fi.Length > FileSizeThreshold)
                         {
@@ -443,6 +443,7 @@ namespace EchoOrbit.Helpers
                             messagesContainer.Children.Add(audioBubble);
                             if (att.IsFileTransfer && att.TransferPort == 0)
                             {
+                                // Start upload immediately
                                 int port = StartTcpFileTransfer(att.LocalFilePath, att);
                                 att.TransferPort = port;
                             }
@@ -668,7 +669,7 @@ namespace EchoOrbit.Helpers
                 Value = 0,
                 Width = 70,
                 Height = 70,
-                Visibility = isLocal && att.IsFileTransfer ? Visibility.Visible : Visibility.Collapsed
+                Visibility = isLocal && att.IsFileTransfer ? Visibility.Visible : Visibility.Collapsed // Visible for sending
             };
 
             if (bubbleBackground == Brushes.SeaGreen)
@@ -701,23 +702,28 @@ namespace EchoOrbit.Helpers
                 Console.WriteLine($"Error: CircularProgressBarTemplate resource not found. Using default ProgressBar template. {ex.Message}");
             }
 
+            // Initialize Progress<float> for the attachment
             att.Progress = new Progress<float>(progressValue =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    progressBar.Value = progressValue * 100;
+                    progressBar.Value = progressValue * 100; // Convert 0-1 to 0-100
                     progressBar.Visibility = Visibility.Visible;
                     if (progressValue >= 1.0f)
                     {
                         progressBar.Visibility = Visibility.Collapsed;
+                        if (!isLocal)
+                        {
+                            playButton.Content = "♫"; // Update to play symbol after download
+                        }
                     }
                     Console.WriteLine($"Progress for '{att.FileName}': {progressValue:P0}");
                 });
             });
 
             Grid container = new Grid();
-            container.Children.Add(playButton);
-            container.Children.Add(progressBar);
+            container.Children.Add(progressBar); // Add progressBar first (background)
+            container.Children.Add(playButton);  // Add playButton on top
 
             playButton.Click += async (s, e) =>
             {
@@ -738,6 +744,7 @@ namespace EchoOrbit.Helpers
                                 AudioFileName = attachment.FileName
                             };
                             SendControlMessage(ctrlMsg, ip);
+                            progressBar.Visibility = Visibility.Visible; // Show progress bar for download
                             return;
                         }
                         else
@@ -746,11 +753,9 @@ namespace EchoOrbit.Helpers
                             {
                                 // Save to the ReceivedAudio folder
                                 filePath = Path.Combine(audioStoragePath, attachment.FileName);
-                                // Ensure unique filename to avoid overwrites
                                 filePath = GetUniqueFilePath(filePath);
                                 await TCPFileHandler.DownloadFileAsync(ip, attachment.TransferPort, filePath, attachment.Progress);
                                 attachment.LocalFilePath = filePath;
-                                playButton.Content = "♫";
                                 Console.WriteLine($"Saved received audio to: {filePath}");
                             }
                             catch (Exception ex)
@@ -790,6 +795,10 @@ namespace EchoOrbit.Helpers
                     Console.WriteLine($"Playing audio file '{filePath}'");
                     musicController.PlayMusicFromFile(filePath);
                 }
+                else
+                {
+                    MessageBox.Show($"Audio file not found at: {filePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             };
 
             Border bubble = new Border
@@ -808,7 +817,6 @@ namespace EchoOrbit.Helpers
             string filePath = Path.Combine(audioStoragePath, fileName);
             try
             {
-                // Ensure unique filename to avoid overwrites
                 filePath = GetUniqueFilePath(filePath);
                 byte[] bytes = Convert.FromBase64String(base64);
                 File.WriteAllBytes(filePath, bytes);
